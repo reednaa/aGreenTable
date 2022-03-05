@@ -13,6 +13,8 @@ export async function onRequest(context) {
     switch (url.pathname) {
       case '/ws':
         return websocketHandler(request)
+      case '/wss':
+        return websocketHandler(request)
       default:
         return new Response("Not found", { status: 404 })
     }
