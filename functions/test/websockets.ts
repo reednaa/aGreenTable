@@ -1,5 +1,5 @@
 addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
+  event.respondWith(onRequest(event.request))
 })
 
 async function handleSession(websocket) {
@@ -29,7 +29,7 @@ const websocketHandler = async request => {
   })
 }
 
-async function handleRequest(request) {
+async function onRequest(request) {
   try {
     const url = new URL(request.url)
     switch (url.pathname) {
