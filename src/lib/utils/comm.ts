@@ -22,7 +22,7 @@ export default class Connection {
         this.channel = channel;
         this.identifier = identifier;
 
-        const url = new URL(window.location);
+        const url = new URL(window.location.href.replace("https://", "https://_socket."));
         url.protocol = "ws";
         url.pathname = "/";
         url.port = "3001";
