@@ -22,9 +22,13 @@ export default class Connection {
         this.channel = channel;
         this.identifier = identifier;
 
+        const dev = false;
+
         const url = new URL(window.location);
-        url.href = url.href.replace("https://", "https://_socket.")
-        url.protocol = "ws";
+        if (!dev) {
+            url.href = url.href.replace("https://", "https://socket.")
+        }
+        url.protocol = dev ? "ws" : "wss";
         url.pathname = "/";
         url.port = "3001";
         this.socket = new WebSocket(url);
