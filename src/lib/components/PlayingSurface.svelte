@@ -1,18 +1,19 @@
 <script lang="ts">
 	// import Decimal from 'decimal.js';
-	import PlayingCardGroup from '$lib/components/PlayingCardGroup.svelte';
-	import Rules from '$lib/utils/rules';
-	import { page } from '$app/stores';
+	import PlayingCardGroup from "$lib/components/PlayingCardGroup.svelte";
+	import Rules from "$lib/utils/rules";
+	import { page } from "$app/stores";
 
-	import { get, writable, type Writable } from 'svelte/store';
-	import { CardGroup } from '$lib/utils/deck';
-	import { onMount } from 'svelte';
-	import Check from './icons/Check.svelte';
-	import Connection, { username } from '$lib/utils/comm';
-	import { goto } from '$app/navigation';
+	import { get, writable, type Writable } from "svelte/store";
+	import { CardGroup } from "$lib/utils/deck";
+	import { onDestroy, onMount } from "svelte";
+	import Check from "./icons/Check.svelte";
+	import Connection, { username } from "$lib/utils/comm";
+	import { goto } from "$app/navigation";
 
 	export let cardGroups: CardGroup[] = [];
-	export const store_CardGroup: Writable<CardGroup[]> = writable(cardGroups);
+	export const cardStore: Writable<CardGroup[]> = writable(cardGroups);
+	let postSurface = writable(() => {});
 	export let hand = true;
 	let liftedCard = -1;
 	let highestZ = 1;
@@ -22,7 +23,7 @@
 	export let motion = false;
 	let turnButtonHover = false;
 	let drawButton = true;
-	let drawValue = '';
+	let drawValue = "";
 	const gameID = $page.params["gameID"];
 
 	const startTime = Date.now();
@@ -33,15 +34,16 @@
 			function internalCardClick(m) {
 				if (liftedCard == i) {
 					if (Date.now() - mouseTime < 200 * 1) {
-						store_CardGroup.update((cc) => {
+						cardStore.update((cc) => {
 							cc[i].flipped = !cc[i]?.flipped;
 							return cc;
 						});
 					}
 					liftedCard = -1;
+					$postSurface();
 				} else {
 					highestZ += 1;
-					store_CardGroup.update((cc) => {
+					cardStore.update((cc) => {
 						cc[i].z = highestZ;
 						return cc;
 					});
@@ -53,11 +55,12 @@
 		} else {
 			setTimeout(() => {
 				highestZ -= 1;
-				store_CardGroup.update((cc) => {
+				cardStore.update((cc) => {
 					cc[i].z = highestZ;
 					return cc;
 				});
 				liftedCard = -1;
+				$postSurface();
 				mouseTime = Date.now();
 			}, 1);
 			return () => {};
@@ -66,8 +69,8 @@
 
 	function handleCardButtonClick(i) {
 		function internalHandleCardButtonClick() {
-			if (Rules.splitCards($store_CardGroup[i])) {
-				store_CardGroup.update((cc) => {
+			if (Rules.splitCards($cardStore[i])) {
+				cardStore.update((cc) => {
 					const clickedCardGroup = cc[i];
 					const popCard = clickedCardGroup.cards.pop();
 					cc[i] = clickedCardGroup;
@@ -98,7 +101,7 @@
 				handleCardClick(i, true);
 			}, 1);
 			let newState: boolean;
-			store_CardGroup.update((cc) => {
+			cardStore.update((cc) => {
 				newState = !cc[i].locked;
 				cc[i].locked = newState;
 				return cc;
@@ -117,9 +120,15 @@
 		let its = 0;
 		for (let em of comparisons) {
 			if (em?.x) {
-				const calc = Math.sqrt((+element?.x - +em?.x) ** 2 + (+element?.y - +em?.y) ** 2);
+				const calc = Math.sqrt(
+					(+element?.x - +em?.x) ** 2 + (+element?.y - +em?.y) ** 2
+				);
 				if (calc != 0) {
-					distances.push({ distance: calc, i: its, dir: +element?.x - +em?.x });
+					distances.push({
+						distance: calc,
+						i: its,
+						dir: +element?.x - +em?.x,
+					});
 				}
 			}
 			its += 1;
@@ -128,37 +137,45 @@
 	}
 
 	function drawCards(n) {
-		store_CardGroup.update(cc => {
+		cardStore.update((cc) => {
 			const draws = cc[0].draw(n);
 			console.log(draws);
 			const newIndex = cc.push(draws);
-			cc[newIndex - 1].y = 0.55
+			cc[newIndex - 1].y = 0.55;
 			cc[newIndex - 1].flipped = true;
 
 			return cc;
-		})
+		});
 	}
+
+	let conn: Connection;
 	onMount(function () {
 		document.onmousemove = (m) => {
 			if (liftedCard != -1) {
 				const ofhe =
-					(m.y - document.getElementById('playingSurface').offsetTop) /
-					document.getElementById('playingSurface').offsetHeight;
-				store_CardGroup.update((cc) => {
-					cc[liftedCard].x = m.x / document.getElementById('playingSurface').offsetWidth;
+					(m.y -
+						document.getElementById("playingSurface").offsetTop) /
+					document.getElementById("playingSurface").offsetHeight;
+				cardStore.update((cc) => {
+					cc[liftedCard].x =
+						m.x /
+						document.getElementById("playingSurface").offsetWidth;
 					cc[liftedCard].y = ofhe;
 					return cc;
 				});
 				if (ofhe < 0.845) {
-					let euc = euclidean($store_CardGroup[liftedCard], $store_CardGroup);
+					let euc = euclidean($cardStore[liftedCard], $cardStore);
 					euc = euc.sort((a, b) => a.distance - b.distance);
 					const closest = euc[0];
 					if (
 						closest?.distance < 0.06 &&
-						Rules.combineCards($store_CardGroup[liftedCard], $store_CardGroup[closest.i])
+						Rules.combineCards(
+							$cardStore[liftedCard],
+							$cardStore[closest.i]
+						)
 					) {
 						console.log(closest);
-						store_CardGroup.update((cc) => {
+						cardStore.update((cc) => {
 							let to;
 							let from;
 							const dir = closest.dir > 0 || cc[closest.i].locked;
@@ -169,11 +186,12 @@
 								from = closest.i;
 								to = liftedCard;
 							}
-							console.log(from + ' to ' + to);
+							console.log(from + " to " + to);
 							cc[to].add(cc.splice(from, 1)[0]);
 							return cc;
 						});
 						liftedCard = -1;
+						$postSurface();
 					}
 				}
 			}
@@ -185,29 +203,38 @@
 		});
 
 		if ($username == null || $username == "") {
-			$username = localStorage.getItem('username');
+			$username = localStorage.getItem("username");
 			if ($username == null || $username == "") {
-				goto('/');
+				goto("/");
 			}
 		}
 		if (hand) {
-			const conn = new Connection(gameID, $username);
+			conn = new Connection(gameID, $username);
+			conn.surfaceStore = cardStore;
+			postSurface.update(() => {return () => conn.postSurface()});
 			console.log(conn);
 		}
 		// conn.sendMessage("Hello World")$
 	});
+
+	onDestroy(() => {
+		if (hand && conn) {
+			conn.destroy();
+		}
+	});
 </script>
 
 <div id="playingSurface" class="relative w-full h-full overflow-hidden">
-	{#each $store_CardGroup as cardGroup, i}
+	{#each $cardStore as cardGroup, i}
 		<div
 			class="absolute cursor-move"
 			style="
-				top: calc({cardGroup?.y ? cardGroup.y * 100 : 0}% - {cardGroup?.y ? 10.5 / 2 : 0}rem + {cardGroup?.x
-				? 0
-				: 35}%);
+				top: calc({cardGroup?.y ? cardGroup.y * 100 : 0}% - {cardGroup?.y
+				? 10.5 / 2
+				: 0}rem + {cardGroup?.x ? 0 : 35}%);
 				left: calc({cardGroup?.x ? cardGroup.x * 100 : 0}% - {cardGroup?.x
-				? 7.5 / 2 + 1 * (cardGroup.cards.length - 1) * Number(!cardGroup.locked)
+				? 7.5 / 2 +
+				  1 * (cardGroup.cards.length - 1) * Number(!cardGroup.locked)
 				: 0}rem + {cardGroup?.x ? 0 : 47.5}%);
 				z-index: {cardGroup?.z ? cardGroup.z : 0};
 			"
@@ -230,8 +257,14 @@
 		</div>
 	{/each}
 	{#if hand}
-		<div id="botBar" class="absolute bg-gray-200 h-[1px] w-full bottom-[20%]" />
-		<div id="botBar" class="absolute bg-green-800 h-[1px] w-full bottom-[16.5%]" />
+		<div
+			id="botBar"
+			class="absolute bg-gray-200 h-[1px] w-full bottom-[20%]"
+		/>
+		<div
+			id="botBar"
+			class="absolute bg-green-800 h-[1px] w-full bottom-[16.5%]"
+		/>
 
 		<div class="absolute bottom-[20.2%] right-4 text-white">
 			{$username}
@@ -245,7 +278,11 @@
 					bind:value={drawValue}
 					on:keypress={(v) => {
 						if (v.keyCode == 13) {
-							if (Number(drawValue)) {drawButton = false; drawCards(Number(drawValue));};
+							if (Number(drawValue)) {
+								drawButton = false;
+								drawCards(Number(drawValue));
+								$postSurface();
+							}
 						}
 					}}
 				/>
@@ -260,7 +297,9 @@
 				{#if turnButtonHover}
 					<Check size={1.5} strokeWidth={3} />
 				{:else}
-					{(Math.round((ButtonTime - startTime) / 100) / 10).toFixed(1)}
+					{(Math.round((ButtonTime - startTime) / 100) / 10).toFixed(
+						1
+					)}
 				{/if}
 			</button>
 		</div>

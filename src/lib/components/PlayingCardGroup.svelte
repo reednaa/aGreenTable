@@ -21,7 +21,7 @@
 		fannedHand = true;
 	});
 
-	$: fanSize = 100 / cards.cards.length;
+	$: fanSize = 100 / (cards.cards?.length ? cards.cards.length : 1);
 
 	function yTranslateModifier(i) {
 		if (i > 0) {
@@ -52,8 +52,8 @@
 					class="duration-1000 translate-x-0"
 					class:transition-all={animate}
 					class:transition-none={!animate}
-					style={cards.cards.length > 1
-						? getRotation(i - (cards.cards.length - 1) / 2, fannedHand)
+					style={cards?.cards?.length > 1
+						? getRotation(i - (cards?.cards?.length - 1) / 2, fannedHand)
 						: ''}
 				>
 					<PlayingCard
@@ -61,7 +61,7 @@
 						cardValue={card.value}
 						cardSuit={card.suit}
 						cardRaised={lifted}
-						button={cards.cards.length > 1}
+						button={cards?.cards?.length > 1}
 						locked={cards.locked}
 						on:group={handleButtonClick}
 						on:lock={handleLockClick}
@@ -80,7 +80,7 @@
 						cardValue={card.value}
 						cardSuit={card.suit}
 						cardRaised={lifted}
-						button={cards.cards.length > 1}
+						button={cards?.cards?.length > 1}
 						locked={cards.locked}
 						on:group={handleButtonClick}
 						on:lock={handleLockClick}
