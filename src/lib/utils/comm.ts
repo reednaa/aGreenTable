@@ -21,7 +21,7 @@ export default class Connection {
         url.protocol = "wss"
         url.pathname = "/ws"
 
-        this.socket = new WebSocket("wss://" + url +"test/websocket");
+        this.socket = new WebSocket(url);
 
         this.socket.addEventListener('open', function (event) {
             console.log("Socket connection opened.");
