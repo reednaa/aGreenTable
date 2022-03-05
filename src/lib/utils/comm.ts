@@ -28,9 +28,14 @@ export default class Connection {
             this.send(identifier + " joined!");
         });
 
+        this.socket.addEventListener('closed', function (event) {
+            console.log("Socket connection closed.");
+        });
+
         this.socket.addEventListener('message', function (event) {
             console.log('Message from server ', event.data);
         });
+        console.log(this.socket);
 
     }
 
