@@ -1,8 +1,7 @@
 .DS_Store
 node_modules
 .svelte-kit
-build/*
-!build/functions
+build
 *.swp
 
 .pnpm-debug.log
