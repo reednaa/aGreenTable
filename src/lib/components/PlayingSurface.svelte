@@ -190,9 +190,10 @@
 				goto('/');
 			}
 		}
-
-		const conn = new Connection(gameID, $username);
-		console.log(conn);
+		if (hand) {
+			const conn = new Connection(gameID, $username);
+			console.log(conn);
+		}
 		// conn.sendMessage("Hello World")$
 	});
 </script>

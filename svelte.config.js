@@ -14,6 +14,16 @@ const config = {
 		vite: {
 			ssr: {
 				noExternal: []
+			},
+			server: {
+				proxy: {
+					'/socket.io': {
+						changeOrigin: true,
+						target: 'ws://localhost:3001',
+						ws: true,
+					}
+				},
+				cors: true
 			}
 		}
 	}

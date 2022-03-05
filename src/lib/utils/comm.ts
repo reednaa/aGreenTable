@@ -13,31 +13,41 @@ export function PickupCard() {
 export default class Connection {
     socket: WebSocket
     identifier: string
+    channel: string
 
     constructor(channel: string, identifier: string) {
+        this.channel = channel;
         this.identifier = identifier;
 
-        const url = new URL(window.location);
-        url.protocol = "wss"
-        url.pathname = "/ws"
+        // const url = new URL(window.location);
+        // url.protocol = "ws";
+        // url.pathname = "/";
+        // url.port = "3001";
+        this.socket = new WebSocket("ws://localhost:3001");
 
-        this.socket = new WebSocket(url);
 
-        this.socket.addEventListener('open', function (event) {
+        this.socket.onopen = function (event) {
             console.log("Socket connection opened.");
-            this.send(identifier + " joined!");
-        });
+            this.send(["subscribe", "game/" + channel].toString())
+        };
 
-        this.socket.addEventListener('closed', function (event) {
+        this.socket.onclose = function () {
             console.log("Socket connection closed.");
-        });
+        };
 
-        this.socket.addEventListener('message', function (event) {
-            console.log('Message from server ', event.data);
-        });
-        console.log(this.socket);
-
+        this.socket.onmessage = function(event) {
+            console.log(event);
+        }
     }
+
+    publish(message) {
+        this.socket.send([
+            "publish",
+            "game/" + this.channel,
+            message
+        ].toString());
+    }
+
 
 
 }
