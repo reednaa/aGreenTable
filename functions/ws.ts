@@ -58,7 +58,7 @@ const websocketHandler = async request => {
 async function handleSession(websocket) {
   websocket.accept()
   websocket.addEventListener("message", async ({ data }) => {
-    websocket.broadcast(data);
+    websocket.send(data);
   });
 
   websocket.addEventListener("close", async evt => {
