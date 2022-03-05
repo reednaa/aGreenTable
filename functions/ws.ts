@@ -59,7 +59,16 @@ async function handleSession(websocket) {
   websocket.accept()
   websocket.addEventListener("message", async ({ data }) => {
     websocket.send(data);
-    websocket.broadcast(data);
+    try {
+      websocket.emit(data);
+    } catch (err) {
+      websocket.send(err.toString());
+    }
+    try {
+      websocket.broadcast(data);
+    } catch (err) {
+      websocket.send(err.toString());
+    }
   });
 
   websocket.addEventListener("close", async evt => {
