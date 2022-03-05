@@ -1,8 +1,3 @@
-
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
-})
-
 export async function handleRequest(request) {
   // Contents of context object
   try {
