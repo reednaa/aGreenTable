@@ -1,6 +1,16 @@
-addEventListener('fetch', event => {
-  event.respondWith(onRequest(event.request))
-})
+export async function onRequest(request) {
+  try {
+    const url = new URL(request.url)
+    switch (url.pathname) {
+      case '/ws':
+        return websocketHandler(request)
+      default:
+        return new Response("Not found", { status: 404 })
+    }
+  } catch (err) {
+    return new Response(err.toString())
+  }
+}
 
 async function handleSession(websocket) {
   websocket.accept()
@@ -27,18 +37,4 @@ const websocketHandler = async request => {
     status: 101,
     webSocket: client
   })
-}
-
-async function onRequest(request) {
-  try {
-    const url = new URL(request.url)
-    switch (url.pathname) {
-      case '/ws':
-        return websocketHandler(request)
-      default:
-        return new Response("Not found", { status: 404 })
-    }
-  } catch (err) {
-    return new Response(err.toString())
-  }
 }
