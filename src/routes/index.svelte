@@ -33,7 +33,7 @@
 		<PlayingSurface hand={false} cardGroups={[PlayerOne]} motion={true} />
 	</div>
 	<div class="flex flex-col w-3/4 mx-auto mt-24 items-center justify-center z-10">
-		<div class="text-5xl font-bold mb-6 text-white text z-10">Five Hundred</div>
+		<div class="text-5xl font-bold mb-6 text-white text z-10">A Green Table</div>
 		<div class="flex flex-row place-content-evenly space-x-4 max-w-sm">
 			<div class="flex flex-row">
 				<input
