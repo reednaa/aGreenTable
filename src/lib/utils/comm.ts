@@ -18,7 +18,7 @@ export default class Connection {
     socket: WebSocket
     identifier: Writable<string>;
     channel: string
-    surfaceStore: Writable<CardGroup[]>
+    cardStore: Writable<CardGroup[]>
     chat: Writable<string[]>
     master: string
     onchat: () => void
@@ -92,7 +92,7 @@ export default class Connection {
 
                         break;
                     case "moveCard":
-                        Conn.surfaceStore.update(cc => {
+                        Conn.cardStore.update(cc => {
                             cc[message.i].x = message.x;
                             cc[message.i].y = message.y;
                             return cc;
@@ -101,7 +101,7 @@ export default class Connection {
 
                         break;
                     case "splitCards":
-                        Conn.surfaceStore.update((cc) => {
+                        Conn.cardStore.update((cc) => {
                             const clickedCardGroup = cc[message.i];
                             const popCard = clickedCardGroup.cards.pop();
                             cc[message.i] = clickedCardGroup;
@@ -119,7 +119,7 @@ export default class Connection {
                         Conn.log(`${message.sign} split cards ${message.i}]`)
                         break;
                     case "flipCard":
-                        Conn.surfaceStore.update(cc => {
+                        Conn.cardStore.update(cc => {
                             cc[message.i].flipped = message.flipped;
                             console.log(cc)
                             return cc;
@@ -127,7 +127,21 @@ export default class Connection {
                         Conn.log(`${message.sign} flipped card ${message.i} to ${message.flipped}`)
 
                         break;
-
+                    case "lockCard":
+                        Conn.cardStore.update((cc) => {
+                            cc[message.i].locked = message.locked;
+                            return cc;
+                        });
+                        break;
+                    case "combineCards":
+                        Conn.cardStore.update((cc) => {
+							let to = message.to;
+							let from = message.from;
+							console.log(from + " to " + to + " via websockets");
+							cc[to].add(cc.splice(from, 1)[0]);
+							return cc;
+						});
+                        break;
                     case "postSurface":
                         Conn.log(`Playing surface was updated from ${message.sign}`)
 
@@ -145,7 +159,7 @@ export default class Connection {
                                 a
                             );
                         }
-                        Conn.surfaceStore.update(cc => {
+                        Conn.cardStore.update(cc => {
                             return create;
                         });
 
@@ -210,7 +224,7 @@ export default class Connection {
     postSurface() {
         this.publish({
             action: "postSurface",
-            data: get(this.surfaceStore)
+            data: get(this.cardStore)
         });
     }
 
@@ -299,6 +313,14 @@ export default class Connection {
             z: z
         });
     };
+
+    combineCards(to: number, from: number) {
+        this.publish({
+            action: "combineCards",
+            to: to,
+            from: from
+        });
+    }
 
 
 }

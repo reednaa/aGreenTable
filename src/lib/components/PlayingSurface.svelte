@@ -154,7 +154,7 @@
 	}
 
 	let conn: Connection = new Connection(gameID);
-	conn.surfaceStore = cardStore;
+	conn.cardStore = cardStore;
 	onMount(function () {
 		document.onmousemove = (m) => {
 			if (liftedCard != -1) {
@@ -195,10 +195,10 @@
 							}
 							console.log(from + " to " + to);
 							cc[to].add(cc.splice(from, 1)[0]);
+							conn.combineCards(to, from);
 							return cc;
 						});
 						liftedCard = -1;
-						$postSurface();
 					}
 				}
 			}
