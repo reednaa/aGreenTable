@@ -42,6 +42,7 @@
 							return cc;
 						});
 					}
+					conn.moveCard(liftedCard, $cardStore[liftedCard].x, $cardStore[liftedCard].y, false);
 					liftedCard = -1;
 				} else {
 					highestZ += 1;
@@ -153,22 +154,27 @@
 
 	let conn: Connection = new Connection(gameID);
 	conn.cardStore = cardStore;
+	let lastMoveUpdate = Date.now()
 	onMount(function () {
+
 		document.onmousemove = (m) => {
 			if (liftedCard != -1) {
-				const ofhe =
+				const theXCoord = m.x /
+						document.getElementById("playingSurface").offsetWidth;
+				const theYCoord =
 					(m.y -
 						document.getElementById("playingSurface").offsetTop) /
 					document.getElementById("playingSurface").offsetHeight;
 				cardStore.update((cc) => {
-					cc[liftedCard].x =
-						m.x /
-						document.getElementById("playingSurface").offsetWidth;
-					cc[liftedCard].y = ofhe;
-					conn.moveCard(liftedCard, cc[liftedCard].x, cc[liftedCard].y);
+					cc[liftedCard].x = theXCoord;
+					cc[liftedCard].y = theYCoord;
+					if (Date.now() - lastMoveUpdate > 100) {
+						conn.moveCard(liftedCard, theXCoord, theYCoord, true);
+						lastMoveUpdate = Date.now()
+					}
 					return cc;
 				});
-				if (ofhe < 0.845) {
+				if (theYCoord < 0.845) {
 					let euc = euclidean($cardStore[liftedCard], $cardStore);
 					euc = euc.sort((a, b) => a.distance - b.distance);
 					const closest = euc[0];

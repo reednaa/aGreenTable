@@ -95,6 +95,7 @@ export default class Connection {
                         Conn.cardStore.update(cc => {
                             cc[message.i].x = message.x;
                             cc[message.i].y = message.y;
+                            // cc[message.i].lifted = message.lifted;  TODO: Better way to comm this over.
                             return cc;
                         });
                         // Conn.log(`${message.sign} moved card ${message.i} to [${message.x}, ${message.y}]`)
@@ -299,12 +300,13 @@ export default class Connection {
         })
     }
 
-    moveCard(i: number, x: number, y: number) {
+    moveCard(i: number, x: number, y: number, lifted = false) {
         this.publish({
             action: "moveCard",
             i: i,
             x: x,
-            y: y
+            y: y,
+            lifted: lifted
         });
     }
 
