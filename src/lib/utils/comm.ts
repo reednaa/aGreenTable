@@ -128,14 +128,14 @@ export default class Connection {
                             );
                             return cc;
                         });
-                        Conn.log(`${message.sign} split cards ${message.i}]`)
+                        // Conn.log(`${message.sign} split cards ${message.i}`)
                         break;
                     case "flipCard":
                         Conn.cardStore.update(cc => {
                             cc[message.i].flipped = message.flipped;
                             return cc;
                         });
-                        Conn.log(`${message.sign} flipped card ${message.i} to ${message.flipped}`)
+                        // Conn.log(`${message.sign} flipped card ${message.i} to ${message.flipped}`)
 
                         break;
                     case "lockCard":
@@ -177,8 +177,9 @@ export default class Connection {
 
                         break;
                     case "requestSurface":
+                        Conn.log(`${message.sign} requested playing surface. `)
                         if (Conn.master == ID) {
-                            Conn.log(`${message.sign} requested playing surface. Providing...`)
+                            Conn.log("Providing...")
 
                             Conn.postSurface();
                         }

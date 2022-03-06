@@ -312,10 +312,10 @@
 				: hand
 				? 0
 				: -17}rem);
-				left: calc({cardGroup?.x ? rotatePoint({y: cardGroup?.y ? cardGroup.y : 35, x: cardGroup.x}, userIndex, numConnected).x * 100 : 0}% - {cardGroup?.x
+				left: calc({cardGroup?.x ? rotatePoint({y: cardGroup?.y ? cardGroup.y : 35, x: cardGroup.x}, userIndex, numConnected).x * 100 : 47.5}% - {cardGroup?.x
 				? 7.5 / 2 +
 				  0.3 * (cardGroup.cards.length - 1) * Number(!cardGroup.locked)
-				: 0}rem + {cardGroup?.x ? 0 : 47.5}%);
+				: 0}rem);
 				z-index: {cardGroup?.z ? cardGroup.z : 0};
 			"
 			on:click={handleCardClick(i)}
