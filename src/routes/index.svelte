@@ -18,12 +18,11 @@
 
 	let gameID = '';
 
-	function inputKeyPressHandler(v) {
-		if (v.keyCode == 13) {
-			if ($username && gameID) {
-				window.localStorage.setItem("username", $username)
-				goto('/game/' + gameID);
-			}
+	function submissionHandler(v) {
+		v.preventDefault();
+		if ($username && gameID) {
+			window.localStorage.setItem("username", $username)
+			goto('/game/' + gameID);
 		}
 	}
 </script>
@@ -34,7 +33,7 @@
 	</div>
 	<div class="flex flex-col w-3/4 mx-auto mt-24 items-center justify-center z-10">
 		<div class="text-5xl font-bold mb-6 text-white text z-10">A Green Table</div>
-		<div class="flex flex-row place-content-evenly space-x-4 max-w-sm">
+		<form class="flex flex-row place-content-evenly space-x-4 max-w-sm" on:submit={submissionHandler}>
 			<div class="flex flex-row">
 				<input
 					class="rounded-l-full pl-3 py-0.5 text-center z-10"
@@ -42,19 +41,16 @@
 					id="Name"
 					name="username"
 					bind:value={$username}
-					on:keydown={inputKeyPressHandler}
 				/>
 				<input
 					class="rounded-r-full pr-3 py-0.5 text-center z-10"
 					placeholder="GameID"
 					bind:value={gameID}
-					on:keydown={inputKeyPressHandler}
 				/>
 			</div>
 			<button
-				class="bg-gray-50 rounded-full px-3 py-0.5 text-center hover:bg-gray-300 z-10"
-				on:click={() => {inputKeyPressHandler({keyCode: 13})}}>Connect</button
+				class="bg-gray-50 rounded-full px-3 py-0.5 text-center hover:bg-gray-300 z-10">Connect</button
 			>
-		</div>
+		</form>
 	</div>
 </div>

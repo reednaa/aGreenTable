@@ -1,6 +1,6 @@
 import type { Card, CardGroup } from "./deck";
 
-export const ruleSets = ["true", "500", "all"]
+export const ruleSets = ["true", "500"]
 
 export class Rule {
     ruleSet: string[]
@@ -24,7 +24,8 @@ export class Rule {
     combineCards(setOne: CardGroup, setTwo: CardGroup, options?: {}) {
         if (this.ruleSet.includes("true")) {
             return true
-        } else if (this.ruleSet.includes("500") && this.ruleSet.includes("all")) {
+        }
+        if (this.ruleSet.includes("500")) {
             if ((setOne.cards[0].suit == "Joker") && setOne.cards.length == 1) {
                 return true
             }

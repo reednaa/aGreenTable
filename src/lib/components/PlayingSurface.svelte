@@ -10,6 +10,7 @@
 	import Check from "./icons/Check.svelte";
 	import Connection, { username } from "$lib/utils/comm";
 	import { goto } from "$app/navigation";
+	import ChatBox from "./ChatBox.svelte";
 
 	export let cardGroups: CardGroup[] = [];
 	export const cardStore: Writable<CardGroup[]> = writable(cardGroups);
@@ -24,6 +25,7 @@
 	let turnButtonHover = false;
 	let drawButton = true;
 	let drawValue = "";
+	let chatbox;
 	const gameID = $page.params["gameID"];
 
 	const startTime = Date.now();
@@ -36,6 +38,7 @@
 					if (Date.now() - mouseTime < 200 * 1) {
 						cardStore.update((cc) => {
 							cc[i].flipped = !cc[i]?.flipped;
+							conn.flipCard(i, cc[i]?.flipped);
 							return cc;
 						});
 					}
@@ -88,6 +91,7 @@
 					}, 1);
 					return cc;
 				});
+				conn.splitCards(i, highestZ);
 				return true;
 			}
 			return false;
@@ -104,6 +108,7 @@
 			cardStore.update((cc) => {
 				newState = !cc[i].locked;
 				cc[i].locked = newState;
+				conn.lockCard(i, newState);
 				return cc;
 			});
 			console.log(newState);
@@ -148,7 +153,8 @@
 		});
 	}
 
-	let conn: Connection;
+	let conn: Connection = new Connection(gameID);
+	conn.surfaceStore = cardStore;
 	onMount(function () {
 		document.onmousemove = (m) => {
 			if (liftedCard != -1) {
@@ -161,6 +167,7 @@
 						m.x /
 						document.getElementById("playingSurface").offsetWidth;
 					cc[liftedCard].y = ofhe;
+					conn.moveCard(liftedCard, cc[liftedCard].x, cc[liftedCard].y);
 					return cc;
 				});
 				if (ofhe < 0.845) {
@@ -209,9 +216,9 @@
 			}
 		}
 		if (hand) {
-			conn = new Connection(gameID, $username);
-			conn.surfaceStore = cardStore;
-			postSurface.update(() => {return () => conn.postSurface()});
+			conn.connect();
+			conn.onchat = chatbox.onchat;
+			// postSurface.update(() => {return () => conn.postSurface()});
 			console.log(conn);
 		}
 		// conn.sendMessage("Hello World")$
@@ -274,6 +281,7 @@
 			{#if drawButton}
 				<input
 					id="forwardTurn"
+					placeholder="Drw"
 					class="flex h-10 w-10  rounded-md place-content-center items-center bg-gray-100 text-black text-center"
 					bind:value={drawValue}
 					on:keypress={(v) => {
@@ -302,6 +310,13 @@
 					)}
 				{/if}
 			</button>
+		</div>
+		<div class="absolute bottom-6 left-6 flex flex-col space-y-8">
+			<ChatBox
+				on:message={(msg) => conn.say(msg.detail.value)}
+				chat={conn.chat}
+				bind:this={chatbox}
+			/>
 		</div>
 	{/if}
 </div>
