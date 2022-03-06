@@ -235,17 +235,19 @@ export default class Connection {
     }
 
     publish(data: any, topic = null) {
-        console.log("message sent");
-        if (dev) {
-            console.log(data)
-            console.log(topic ? topic : "game/" + this.channel)
+        if (this.socket && (this.socket?.readyState == this.socket?.OPEN)) {
+            console.log("message sent");
+            if (dev) {
+                console.log(data)
+                console.log(topic ? topic : "game/" + this.channel)
+            }
+            data.sign = get(this.identifier);
+            this.socket?.send(JSON.stringify({
+                action: "publish",
+                topic: topic ? topic : "game/" + this.channel,
+                data: data,
+            }));
         }
-        data.sign = get(this.identifier);
-        this.socket?.send(JSON.stringify({
-            action: "publish",
-            topic: topic ? topic : "game/" + this.channel,
-            data: data,
-        }));
     }
 
     say(msg: string) {
