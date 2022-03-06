@@ -43,7 +43,6 @@
 						});
 					}
 					liftedCard = -1;
-					$postSurface();
 				} else {
 					highestZ += 1;
 					cardStore.update((cc) => {
@@ -63,7 +62,6 @@
 					return cc;
 				});
 				liftedCard = -1;
-				$postSurface();
 				mouseTime = Date.now();
 			}, 1);
 			return () => {};
