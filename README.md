@@ -1,39 +1,35 @@
-# aGreenTable
+# [A Green Table | Play cards on a green table](https://green.vav.me)
 
-This repository contains a green table top with cards.
+Table top with a card deck implemented in Svelte + Sveltekit using tailwindcss. Connectivity is implemented with websockets.
 
-## Rules
+## How to use
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+- Lift cards by clicking on the edge. This allows you to move it. On movement, the position is updated for other plays. Clicking places the card down.
 
-## Creating a project
+- Group cards by moving them on top of each other. 
 
-If you're seeing this, you've probably already done this step. Congrats!
+- Remove the first card by clicking on the middle.
 
-```bash
-# create a new project in the current directory
-npm init svelte@next
+- Create a card stack by click on the lock of a card face. Adding cards (by moving them onto it) will place it directly on top.
 
-# create a new project in my-app
-npm init svelte@next my-app
-```
+## Game Rules
 
-> Note: the `@next` is temporary
+Game rules can be implemented in the `utils/rules.ts`. The functions are called before actions are taken. If a rule returns `true` action will be taken.
 
-## Developing
+## Svelte Adapter
 
-Anywhere pnpm is mentioned npm can be replaced.
+The static adapter is used. This allows easy deployment to any service deploying static sites.
 
-First install the dependencies
-```bash
-pnpm install
-```
+The deployment [green.vav.me](https://green.vav.me) is currently hosted by [Cloudflare Pages](https://pages.cloudflare.com)
+
+# Developing
+
+This repository uses [pnpm](https://pnpm.io). In general, `pnpm` can be replaced by `npm`, however `npm` cannot read `pnpm` lock files. This is somewhat of an issue because we depend on `@sveltejs/kit = next` and `@sveltejs/adapter-static = next` which sometimes introduces breaking changes.
+
+## Dev server
 
 ```bash
 pnpm dev
-
-# or start the server and open the app in a new browser tab
-pnpm dev --open
 ```
 
 ## Building
@@ -45,7 +41,3 @@ pnpm build
 ```
 
 The production build can be previewed by `pnpm run preview`.
-
-## Svelte Adapter
-
-The static adapter is used.

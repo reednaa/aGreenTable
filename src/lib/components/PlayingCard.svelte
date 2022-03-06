@@ -170,7 +170,7 @@
 				</div>
 			</div>
 		{/if}
-		{#if button}
+		{#if button && !cardRaised}
 			<div
 				class="absolute w-20 h-24 top-1/2 left-1/2 -mt-12 -ml-10 hover:bg-black rounded-lg cursor-pointer transition-all opacity-10"
 				class:opacity-0={!cardHover || cardRaised}
@@ -188,7 +188,7 @@
 		>
 			Cardback
 		</div>
-		{#if button}
+		{#if button && !cardRaised}
 			<div
 				class="absolute w-20 h-24 top-1/2 left-1/2 -mt-12 -ml-10 hover:bg-black rounded-lg cursor-pointer transition-all opacity-10"
 				class:opacity-0={!cardHover || cardRaised}

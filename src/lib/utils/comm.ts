@@ -241,7 +241,7 @@ export default class Connection {
             console.log(topic ? topic : "game/" + this.channel)
         }
         data.sign = get(this.identifier);
-        this.socket.send(JSON.stringify({
+        this.socket?.send(JSON.stringify({
             action: "publish",
             topic: topic ? topic : "game/" + this.channel,
             data: data,
@@ -259,14 +259,14 @@ export default class Connection {
     }
 
     subscribe(topic: string) {
-        this.socket.send(JSON.stringify({
+        this.socket?.send(JSON.stringify({
             action: "subscribe",
             topic: topic
         }));
     }
 
     unsubscribe(topic: string) {
-        this.socket.send(JSON.stringify({
+        this.socket?.send(JSON.stringify({
             action: "unsubscribe",
             topic: topic
         }));
