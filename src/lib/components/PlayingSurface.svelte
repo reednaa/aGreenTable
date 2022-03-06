@@ -218,7 +218,7 @@
 		if (hand) {
 			conn.connect();
 			conn.onchat = chatbox.onchat;
-			// postSurface.update(() => {return () => conn.postSurface()});
+			postSurface.update(() => {return () => conn.postSurface()});
 			console.log(conn);
 		}
 		// conn.sendMessage("Hello World")$
@@ -301,6 +301,7 @@
 				class="flex h-10 w-10 rounded-md place-content-center items-center bg-gray-100 text-green-600 hover:bg-white hover:text-green-700"
 				on:mouseenter={() => (turnButtonHover = true)}
 				on:mouseleave={() => (turnButtonHover = false)}
+				on:click={$postSurface}
 			>
 				{#if turnButtonHover}
 					<Check size={1.5} strokeWidth={3} />
