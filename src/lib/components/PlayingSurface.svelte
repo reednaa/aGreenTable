@@ -173,7 +173,7 @@
 					euc = euc.sort((a, b) => a.distance - b.distance);
 					const closest = euc[0];
 					if (
-						closest?.distance < 0.06 &&
+						closest?.distance < 0.02 &&
 						Rules.combineCards(
 							$cardStore[liftedCard],
 							$cardStore[closest.i]
