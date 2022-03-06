@@ -239,8 +239,8 @@
 	{#each $cardStore as cardGroup, i}
 		<div
 			class="absolute cursor-move"
-			class:transition-all={liftedCard == i}
-			class:duration-100={liftedCard == i}
+			class:transition-all={liftedCard != i}
+			class:duration-100={liftedCard != i}
 			style="
 				top: calc({cardGroup?.y ? cardGroup.y * 100 : 0}% - {cardGroup?.y
 				? 10.5 / 2
