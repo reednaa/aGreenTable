@@ -21,7 +21,7 @@
 		fannedHand = true;
 	});
 
-	$: fanSize = 100 / (cards.cards?.length ? cards.cards.length : 1);
+	$: fanSize = 80 / (cards.cards?.length ? cards.cards.length : 1);
 
 	function yTranslateModifier(i) {
 		if (i > 0) {
@@ -34,7 +34,7 @@
 
 	function getRotation(i, fanned) {
 		if (fanned && hand && fan) {
-			return 'rotate: ' + i * fanSize + 'deg;'; //transform: translateY(" + yTranslateModifier(i)+ "px);";
+			return 'rotate: ' + (i * fanSize**0.8) + 'deg;'; //transform: translateY(" + yTranslateModifier(i)+ "px);";
 		}
 		return 'rotate: ' + 0 + 'deg;';
 	}
@@ -46,7 +46,7 @@
 
 <div class="relative">
 	{#if !stack}
-		<div class="flex flex-row {fanOut || stack ? '-space-x-[7.5rem]' : '-space-x-20'}">
+		<div class="flex flex-row {fanOut || stack ? '-space-x-[8rem]' : '-space-x-24'}">
 			{#each cards.cards as card, i}
 				<div
 					class="duration-1000 translate-x-0"

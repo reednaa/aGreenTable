@@ -236,10 +236,10 @@
 			style="
 				top: calc({cardGroup?.y ? cardGroup.y * 100 : 0}% - {cardGroup?.y
 				? 10.5 / 2
-				: 0}rem + {cardGroup?.x ? 0 : 35}%);
+				: (hand ? 0 : -17)}rem + {cardGroup?.y ? 0 : (hand ? 35 : 0)}%);
 				left: calc({cardGroup?.x ? cardGroup.x * 100 : 0}% - {cardGroup?.x
 				? 7.5 / 2 +
-				  1 * (cardGroup.cards.length - 1) * Number(!cardGroup.locked)
+				  0.3 * (cardGroup.cards.length - 1) * Number(!cardGroup.locked)
 				: 0}rem + {cardGroup?.x ? 0 : 47.5}%);
 				z-index: {cardGroup?.z ? cardGroup.z : 0};
 			"

@@ -11,7 +11,7 @@
 	const deck = new CardDeck({ shuffle: true });
 	const PlayerOne = deck.draw(5);
 	PlayerOne.x = 0.5;
-	PlayerOne.y = 0.4;
+	// PlayerOne.y = 0.4;
 	// const playingDeck = deck.draw();
 	// playingDeck.x = 0.52;
 	// playingDeck.y = 0.7;
