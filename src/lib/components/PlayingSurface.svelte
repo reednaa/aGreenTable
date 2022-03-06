@@ -168,7 +168,7 @@
 				cardStore.update((cc) => {
 					cc[liftedCard].x = theXCoord;
 					cc[liftedCard].y = theYCoord;
-					if (Date.now() - lastMoveUpdate > 100) {
+					if (Date.now() - lastMoveUpdate > 105) {
 						conn.moveCard(liftedCard, theXCoord, theYCoord, true);
 						lastMoveUpdate = Date.now()
 					}
@@ -239,8 +239,8 @@
 	{#each $cardStore as cardGroup, i}
 		<div
 			class="absolute cursor-move"
-			class:transition-all={liftedCard == -1}
-			class:duration-75={liftedCard == -1}
+			class:transition-all={liftedCard == i}
+			class:duration-100={liftedCard == i}
 			style="
 				top: calc({cardGroup?.y ? cardGroup.y * 100 : 0}% - {cardGroup?.y
 				? 10.5 / 2
