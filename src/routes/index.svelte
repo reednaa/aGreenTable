@@ -27,6 +27,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>A Green Table | Play cards on a green table</title>
+</svelte:head>
+
 <div class="relative w-screen h-screen overflow-hidden">
 	<div class="absolute top-0 left-0 w-screen h-screen">
 		<PlayingSurface hand={false} cardGroups={[PlayerOne]} motion={true} />

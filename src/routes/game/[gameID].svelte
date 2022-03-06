@@ -1,19 +1,25 @@
 <script lang="ts">
     import PlacedCards from "$lib/components/PlayingCardGroup.svelte";
-    import Card from "$lib/components/PlayingCard.svelte";   
-    
+    import Card from "$lib/components/PlayingCard.svelte";
+    import { page } from "$app/stores";
+
     import CardDeck from "$lib/utils/deck";
     import CardSurface from "$lib/components/PlayingSurface.svelte";
 
-    const deck = new CardDeck({shuffle: true, flipped: false});
+    const deck = new CardDeck({ shuffle: true, flipped: false });
     // const firstGroup = deck.draw(4);
     // const secondGroup = deck.draw(0);
     const PlayerZero = deck.draw();
     PlayerZero.locked = true;
+    const gameID = $page.params["gameID"];
 </script>
 
+<svelte:head>
+    <title>A Green Table | Game: {gameID}</title>
+</svelte:head>
+
 <div class="w-screen h-screen">
-    <CardSurface cardGroups={[PlayerZero]}/>
+    <CardSurface cardGroups={[PlayerZero]} />
 </div>
 
 <!-- <br>
