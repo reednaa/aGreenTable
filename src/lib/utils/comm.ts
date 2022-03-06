@@ -12,7 +12,7 @@ export function PickupCard() {
 
 }
 
-const INIT_TIME = 3000;
+const INIT_TIME = 1250;
 
 export default class Connection {
     socket: WebSocket
@@ -21,6 +21,8 @@ export default class Connection {
     cardStore: Writable<CardGroup[]>
     chat: Writable<string[]>
     master: string
+    connectedUsers: Writable<string[]>;
+    oldUsername = "";
     onchat: () => void
 
     constructor(channel: string) {
@@ -28,6 +30,7 @@ export default class Connection {
         this.identifier = username;
         this.chat = writable([]);
         this.onchat = () => { };
+        this.connectedUsers = writable([]);
     }
 
     connect() {
@@ -50,8 +53,7 @@ export default class Connection {
             Conn.subscribe("game/" + channel + "/" + identifier);
             Conn.subscribe("game/" + channel + "/" + identifier + "/init");
             Conn.publish(
-                { action: "join", username: identifier },
-                "game/" + channel
+                { action: "join", username: identifier }
             )
             Conn.publish(
                 { action: "requestMaster", username: identifier }
@@ -68,6 +70,15 @@ export default class Connection {
                 if (!Conn.master) {
                     Conn.master = identifier;
                     Conn.publish({ action: "setMaster", newMaster: identifier });
+                    if (!+get(Conn.connectedUsers)[0]) {
+                        Conn.connectedUsers.set([identifier]);
+                        Conn.publish({
+                            action: "denyMaster",
+                            master: Conn.master,
+                            users: get(Conn.connectedUsers)
+                        });
+                    }
+                    console.log(get(Conn.connectedUsers))
                 }
             }, INIT_TIME);
         };
@@ -77,11 +88,11 @@ export default class Connection {
         };
 
         this.socket.onmessage = function (event) {
-            console.log("Message received")
             try {
                 const message = JSON.parse(event.data);
-                console.log(message);
-
+                console.log("Message received for " + message.action);
+                const connUsers = get(Conn.connectedUsers);
+                const ID = get(Conn.identifier)
                 switch (message.action) {
                     case "chat":
                         Conn.log(`${message.sign}: ${message.msg}`)
@@ -122,7 +133,6 @@ export default class Connection {
                     case "flipCard":
                         Conn.cardStore.update(cc => {
                             cc[message.i].flipped = message.flipped;
-                            console.log(cc)
                             return cc;
                         });
                         Conn.log(`${message.sign} flipped card ${message.i} to ${message.flipped}`)
@@ -138,13 +148,13 @@ export default class Connection {
                         Conn.cardStore.update((cc) => {
 							let to = message.to;
 							let from = message.from;
-							console.log(from + " to " + to + " via websockets");
+							// console.log(from + " to " + to + " via websockets");
 							cc[to].add(cc.splice(from, 1)[0]);
 							return cc;
 						});
                         break;
                     case "postSurface":
-                        Conn.log(`Playing surface was updated from ${message.sign}`)
+                        Conn.log(`Got state from ${message.sign}`)
 
                         const create: CardGroup[] = []
                         for (let grp of message.data) {
@@ -163,20 +173,20 @@ export default class Connection {
                         Conn.cardStore.update(cc => {
                             return create;
                         });
+                        Conn.connectedUsers.set(message.users);
 
                         break;
-
                     case "requestSurface":
-                        if (Conn.master) {
+                        if (Conn.master == ID) {
                             Conn.log(`${message.sign} requested playing surface. Providing...`)
 
                             Conn.postSurface();
                         }
 
                         break;
-
                     case "join":
-                        Conn.log(`${message.sign} joined.`)
+                        Conn.connectedUsers.update(cc => {cc.push(message.sign); return cc});
+                        Conn.log(`${message.sign} joined as number ${get(Conn.connectedUsers).length}.`)
 
                         if (message.username == Conn.identifier) {
                             Conn.publish({
@@ -186,32 +196,61 @@ export default class Connection {
                         }
 
                         break;
+                    case "leave":
+                        if (connUsers.includes(message.sign)) {
+                            Conn.connectedUsers.update(cc => {
+                                cc.splice(cc.indexOf(message.sign), 1);
+                                return cc;
+                            });
+                        }
+                        Conn.log(`${message.sign} left.`);
 
+                        break;
                     case "denyUsername":
                         goto("/")
                         break;
-
                     case "requestMaster":
                         if (Conn.master == get(Conn.identifier)) {
                             Conn.publish({
                                 action: "denyMaster",
-                                master: Conn.master
+                                master: Conn.master,
+                                users: connUsers
                             });
                         }
                         break;
-
                     case "denyMaster":
                         Conn.master = message.master;
                         Conn.log(`${message.master} is the master`)
-                        break;
+                        console.log(message.users);
+                        for (let user of message.users) {
+                            console.log(user != get(Conn.identifier));
+                            if (!connUsers.includes(user)) {
+                                Conn.connectedUsers.update(cc => {cc.push(user); return cc;})
+                            }
+                        }
+                        console.log(get(Conn.connectedUsers));
+                        if (!get(Conn.connectedUsers).includes(get(Conn.identifier))) {
+                            Conn.publish(
+                                { action: "join", username: identifier }
+                            )
+                        }
+                        Conn.log(`${message.users} are in this room`);
 
+                        break;
                     case "setMaster":
                         // if (message.sign == Conn.master) {
                         Conn.master = message.newMaster;
-                        Conn.log(`${message.newMaster} is the new master`)
+                        Conn.log(`${message.newMaster} is the new master`);
+                        if ((!+connUsers[0]) && Conn.master == ID) {
+                            Conn.connectedUsers.set([ID]);
+                            Conn.publish({
+                                action: "denyMaster",
+                                master: Conn.master,
+                                users: get(Conn.connectedUsers)
+                            });
+                        }
                         // }
                         break;
-
                     default:
                         break;
                 }
@@ -225,12 +264,28 @@ export default class Connection {
     postSurface() {
         this.publish({
             action: "postSurface",
-            data: get(this.cardStore)
+            data: get(this.cardStore),
+            users: get(this.connectedUsers)
         });
     }
 
     destroy() {
         if (this.socket) {
+            this.publish(
+                {
+                    action: "leave"
+                }
+            )
+            if (this.master == get(this.identifier)) {
+                this.connectedUsers.update(cc => {
+                    cc.splice(cc.indexOf(get(this.identifier)), 1);
+                    return cc;
+                }); 
+                this.publish({
+                    action: "setMaster",
+                    newMaster: get(this.connectedUsers)[0]
+                });
+            }
             this.socket.close();
         }
     }

@@ -42,7 +42,12 @@
 							return cc;
 						});
 					}
-					conn.moveCard(liftedCard, $cardStore[liftedCard].x, $cardStore[liftedCard].y, false);
+					conn.moveCard(
+						liftedCard,
+						$cardStore[liftedCard].x,
+						$cardStore[liftedCard].y,
+						false
+					);
 					liftedCard = -1;
 				} else {
 					highestZ += 1;
@@ -140,6 +145,50 @@
 		return distances;
 	}
 
+	function unitCirclePoints(n = 2) {
+		if (n == 1) {
+			n = 2;
+		}
+		const tau = Math.PI * 2;
+		const angel = tau / n;
+		const unitPoints = [];
+		for (let i = 0; i < n; i++) {
+			const x = Math.cos(angel * i) * 100;
+			const y = Math.sin(angel * i) * 100;
+			unitPoints.push([x, y]);
+		}
+		return unitPoints;
+	}
+
+	function rotatePoint(
+		points: { x: number; y: number },
+		i,
+		n = 2,
+		invert = false
+	) {
+		console.log(`i: ${i}, n: ${n}`);
+		let {x, y} = points;
+		x -= 0.5;
+		y -= 0.5
+		const tau = Math.PI * 2;
+		const angel = (tau / n) * i;
+		// return {x: x - 0.5, y: y - 0.5};
+		if (invert) {
+			return {
+				x: x * Math.cos(angel) + y * Math.sin(angel) + 0.5,
+				y: -x * Math.sin(angel) + y * Math.cos(angel) + 0.5,
+			};
+		}
+		console.log({
+			x: x * Math.cos(angel) - y * Math.sin(angel) + 0.5,
+			y: x * Math.sin(angel) + y * Math.cos(angel) + 0.5,
+		});
+		return {
+			x: x * Math.cos(angel) - y * Math.sin(angel) + 0.5,
+			y: x * Math.sin(angel) + y * Math.cos(angel) + 0.5,
+		};
+	}
+
 	function drawCards(n) {
 		cardStore.update((cc) => {
 			const draws = cc[0].draw(n);
@@ -152,25 +201,27 @@
 		});
 	}
 
-	let conn: Connection = new Connection(gameID);
+	const conn: Connection = new Connection(gameID);
+	const connectedUsers = conn.connectedUsers;
 	conn.cardStore = cardStore;
-	let lastMoveUpdate = Date.now()
+	let lastMoveUpdate = Date.now();
 	onMount(function () {
-
 		document.onmousemove = (m) => {
 			if (liftedCard != -1) {
-				const theXCoord = m.x /
-						document.getElementById("playingSurface").offsetWidth;
+				console.log($connectedUsers)
+				const theXCoord =
+					m.x / document.getElementById("playingSurface").offsetWidth;
 				const theYCoord =
 					(m.y -
 						document.getElementById("playingSurface").offsetTop) /
 					document.getElementById("playingSurface").offsetHeight;
+				const {x, y} = rotatePoint({x: theXCoord, y: theYCoord}, userIndex, numConnected, true);
 				cardStore.update((cc) => {
-					cc[liftedCard].x = theXCoord;
-					cc[liftedCard].y = theYCoord;
+					cc[liftedCard].x = x;
+					cc[liftedCard].y = y;
 					if (Date.now() - lastMoveUpdate > 125) {
-						conn.moveCard(liftedCard, theXCoord, theYCoord, true);
-						lastMoveUpdate = Date.now()
+						conn.moveCard(liftedCard, x, y, true);
+						lastMoveUpdate = Date.now();
 					}
 					return cc;
 				});
@@ -222,10 +273,21 @@
 		if (hand) {
 			conn.connect();
 			conn.onchat = chatbox.onchat;
-			postSurface.update(() => {return () => conn.postSurface()});
+			postSurface.update(() => {
+				return () => conn.postSurface();
+			});
 			console.log(conn);
 		}
 		// conn.sendMessage("Hello World")$
+		let onBeforeUnLoadEvent = false;
+		window.onunload = window.onbeforeunload = () => {
+			if (!onBeforeUnLoadEvent) {
+				onBeforeUnLoadEvent = true;
+				if (hand && conn) {
+					conn.destroy();
+				}
+			}
+		};
 	});
 
 	onDestroy(() => {
@@ -233,6 +295,9 @@
 			conn.destroy();
 		}
 	});
+
+	$: numConnected = $connectedUsers.length ? $connectedUsers.length : 1;
+	$: userIndex =  $connectedUsers.length ? $connectedUsers.indexOf($username) : 0;
 </script>
 
 <div id="playingSurface" class="relative w-full h-full overflow-hidden">
@@ -242,10 +307,12 @@
 			class:transition-all={liftedCard != i}
 			class:duration-100={liftedCard != i}
 			style="
-				top: calc({cardGroup?.y ? cardGroup.y * 100 : 0}% - {cardGroup?.y
+				top: calc({cardGroup?.y ? rotatePoint({x: cardGroup?.x ? cardGroup.x : 47.5, y: cardGroup.y}, userIndex, numConnected).y * 100 : hand ? 35 : 0}% - {cardGroup?.y
 				? 10.5 / 2
-				: (hand ? 0 : -17)}rem + {cardGroup?.y ? 0 : (hand ? 35 : 0)}%);
-				left: calc({cardGroup?.x ? cardGroup.x * 100 : 0}% - {cardGroup?.x
+				: hand
+				? 0
+				: -17}rem);
+				left: calc({cardGroup?.x ? rotatePoint({y: cardGroup?.y ? cardGroup.y : 35, x: cardGroup.x}, userIndex, numConnected).x * 100 : 0}% - {cardGroup?.x
 				? 7.5 / 2 +
 				  0.3 * (cardGroup.cards.length - 1) * Number(!cardGroup.locked)
 				: 0}rem + {cardGroup?.x ? 0 : 47.5}%);
