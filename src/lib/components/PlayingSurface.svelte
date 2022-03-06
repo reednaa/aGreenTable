@@ -168,7 +168,7 @@
 				cardStore.update((cc) => {
 					cc[liftedCard].x = theXCoord;
 					cc[liftedCard].y = theYCoord;
-					if (Date.now() - lastMoveUpdate > 105) {
+					if (Date.now() - lastMoveUpdate > 115) {
 						conn.moveCard(liftedCard, theXCoord, theYCoord, true);
 						lastMoveUpdate = Date.now()
 					}
