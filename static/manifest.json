@@ -2,7 +2,13 @@
     "short_name": "aGreenTable",
     "name": "A Green Table",
     "start_url": "/",
-    "icon": [],
-    "background-color": "#14532d",
+    "icons": [{
+        "src": "/icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any maskable"
+    }],
+    "background_color": "#14532d",
+    "theme_color": "#14532d",
     "description": "a tabletop with playing cards"
 }
