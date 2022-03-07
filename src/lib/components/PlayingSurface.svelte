@@ -227,7 +227,7 @@
 					}
 					return cc;
 				});
-				if (y < 0.845) {
+				if (theYCoord < 0.845) {
 					console.log(cardOnHand);
 					let euc = euclidean($cardStore[liftedCard], $cardStore);
 					euc = euc.sort((a, b) => a.distance - b.distance);
@@ -259,7 +259,7 @@
 						liftedCard = -1;
 					}
 				}
-				if (y > 0.8) {
+				if (theYCoord > 0.8) {
 					if (!cardOnHand.includes(liftedCard)) {
 						cardOnHand.push(liftedCard);
 					}
