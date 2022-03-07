@@ -14,6 +14,7 @@
 
 	export let cardGroups: CardGroup[] = [];
 	export const cardStore: Writable<CardGroup[]> = writable(cardGroups);
+	export const userHands: Writable<CardGroup[]> = writable([]);
 	let postSurface = writable(() => {});
 	export let hand = true;
 	let liftedCard = -1;
@@ -26,6 +27,7 @@
 	let drawButton = true;
 	let drawValue = "";
 	let chatbox;
+	const cardOnHand = [];
 	const gameID = $page.params["gameID"];
 
 	const startTime = Date.now();
@@ -225,7 +227,8 @@
 					}
 					return cc;
 				});
-				if (theYCoord < 0.845) {
+				if (y < 0.845) {
+					console.log(cardOnHand);
 					let euc = euclidean($cardStore[liftedCard], $cardStore);
 					euc = euc.sort((a, b) => a.distance - b.distance);
 					const closest = euc[0];
@@ -254,6 +257,15 @@
 							return cc;
 						});
 						liftedCard = -1;
+					}
+				}
+				if (y > 0.8) {
+					if (!cardOnHand.includes(liftedCard)) {
+						cardOnHand.push(liftedCard);
+					}
+				} else {
+					if (cardOnHand.includes(liftedCard)) {
+						cardOnHand.splice(cardOnHand.indexOf(liftedCard, 1))
 					}
 				}
 			}
@@ -323,11 +335,11 @@
 			<PlayingCardGroup
 				cards={cardGroup}
 				lifted={liftedCard == i}
-				flipped={cardGroup?.flipped
+				flipped={cardOnHand.includes(i) ? true : (cardGroup?.flipped
 					? cardGroup?.flipped
 					: cardGroup?.flipped == null
 					? null
-					: false}
+					: false)}
 				handleButtonClick={handleCardButtonClick(i)}
 				handleLockClick={handleCardLockClick(i)}
 				hand={!cardGroup.locked}
@@ -393,4 +405,7 @@
 			/>
 		</div>
 	{/if}
+	<!-- {#each $userHands as usrHand}
+		<div/>
+	{/each} -->
 </div>
