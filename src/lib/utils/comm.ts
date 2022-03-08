@@ -19,6 +19,7 @@ export default class Connection {
     identifier: Writable<string>;
     channel: string
     cardStore: Writable<CardGroup[]>
+    handStore: Writable<{ [username: string]: CardGroup }>
     chat: Writable<string[]>
     master: string
     connectedUsers: Writable<string[]>;
@@ -146,13 +147,44 @@ export default class Connection {
                         break;
                     case "combineCards":
                         Conn.cardStore.update((cc) => {
-							let to = message.to;
-							let from = message.from;
-							// console.log(from + " to " + to + " via websockets");
-							cc[to].add(cc.splice(from, 1)[0]);
-							return cc;
-						});
+                            let to = message.to;
+                            let from = message.from;
+                            // console.log(from + " to " + to + " via websockets");
+                            cc[to].add(cc.splice(from, 1)[0]);
+                            return cc;
+                        });
                         break;
+                    case "pickupCard":
+                        let puC: CardGroup[];
+                        Conn.cardStore.update(cc => {
+                            puC = cc.splice(message.i, 1);
+                            return cc
+                        });
+                        Conn.handStore.update(cc => {
+                            const selected = cc[message.user];
+                            if (selected) {
+                                cc[message.user].add(puC[0]);
+                            } else {
+                                cc[message.user] = puC[0];
+                            }
+                            return cc;
+                        })
+                        break;
+                    case "dropCard":
+                        let dC: CardGroup;
+                        Conn.handStore.update(cc => {
+                            dC = new CardGroup(cc[message.user].cards.splice(message.i, 1),
+                                cc[message.user]?.x,
+                                cc[message.user]?.y
+                            );
+                            return cc;
+                        });
+                        Conn.cardStore.update((cc) => {
+                            cc.push(
+                                dC
+                            );
+                            return cc;
+                        });
                     case "postSurface":
                         Conn.log(`Got state from ${message.sign}`)
 
@@ -186,7 +218,7 @@ export default class Connection {
 
                         break;
                     case "join":
-                        Conn.connectedUsers.update(cc => {cc.push(message.sign); return cc});
+                        Conn.connectedUsers.update(cc => { cc.push(message.sign); return cc });
                         Conn.log(`${message.sign} joined as number ${get(Conn.connectedUsers).length}.`)
 
                         if (message.username == Conn.identifier) {
@@ -208,7 +240,7 @@ export default class Connection {
 
                         break;
                     case "denyUsername":
-                        goto("/")
+                        window.location = "/"
                         break;
                     case "requestMaster":
                         if (Conn.master == get(Conn.identifier)) {
@@ -226,7 +258,7 @@ export default class Connection {
                         for (let user of message.users) {
                             console.log(user != get(Conn.identifier));
                             if (!connUsers.includes(user)) {
-                                Conn.connectedUsers.update(cc => {cc.push(user); return cc;})
+                                Conn.connectedUsers.update(cc => { cc.push(user); return cc; })
                             }
                         }
                         console.log(get(Conn.connectedUsers));
@@ -253,6 +285,7 @@ export default class Connection {
                         // }
                         break;
                     default:
+                        console.log("Not implemented")
                         break;
                 }
             } catch (err) {
@@ -281,7 +314,7 @@ export default class Connection {
                 this.connectedUsers.update(cc => {
                     cc.splice(cc.indexOf(get(this.identifier)), 1);
                     return cc;
-                }); 
+                });
                 this.publish({
                     action: "setMaster",
                     newMaster: get(this.connectedUsers)[0]
@@ -381,6 +414,23 @@ export default class Connection {
             from: from
         });
     }
+
+    // pickupCard(who: string, i: number) {
+    //     this.publish({
+    //         action: "pickupCards",
+    //         i: i,
+    //         who: who
+    //     });
+
+    // }
+
+    // dropCard(who: number, i: number) {
+    //     this.publish({
+    //         action: "dropCards",
+    //         who: who,
+    //         i: i
+    //     });
+    // }
 
 
 }

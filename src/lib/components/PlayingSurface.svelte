@@ -14,7 +14,8 @@
 
 	export let cardGroups: CardGroup[] = [];
 	export const cardStore: Writable<CardGroup[]> = writable(cardGroups);
-	export const userHands: Writable<CardGroup[]> = writable([]);
+	export const handStore: Writable<{ [username: string]: CardGroup }> =
+		writable({});
 	let postSurface = writable(() => {});
 	export let hand = true;
 	let liftedCard = -1;
@@ -27,7 +28,6 @@
 	let drawButton = true;
 	let drawValue = "";
 	let chatbox;
-	const cardOnHand = [];
 	const gameID = $page.params["gameID"];
 
 	const startTime = Date.now();
@@ -147,47 +147,51 @@
 		return distances;
 	}
 
-	function unitCirclePoints(n = 2) {
+	function unitCirclePoints(n = 2, index: number) {
 		if (n == 1) {
 			n = 2;
 		}
 		const tau = Math.PI * 2;
 		const angel = tau / n;
-		const unitPoints = [];
-		for (let i = 0; i < n; i++) {
-			const x = Math.cos(angel * i) * 100;
-			const y = Math.sin(angel * i) * 100;
-			unitPoints.push([x, y]);
-		}
-		return unitPoints;
+		return {
+			x: Math.cos(angel * index - tau / 4),
+			y: Math.sin(angel * index - tau / 4),
+		};
 	}
 
 	function rotatePoint(
-		points: { x: number; y: number },
-		i,
-		n = 2,
-		invert = false
+		point: { x: number; y: number },
+		i?,
+		n?,
+		options: { invert?: boolean; adjust?: boolean; angel?: number } = {}
 	) {
-		console.log(`i: ${i}, n: ${n}`);
-		let {x, y} = points;
-		x -= 0.5;
-		y -= 0.5
 		const tau = Math.PI * 2;
-		const angel = (tau / n) * i;
+		let {
+			invert = false,
+			adjust = true,
+			angel = (tau / n) * i,
+		} = options;
+		console.log(`i: ${i}, n: ${n}`);
+		let { x, y } = point;
+		if (adjust) {
+			x -= 0.5;
+			y -= 0.5;
+		}
 		// return {x: x - 0.5, y: y - 0.5};
 		if (invert) {
 			return {
-				x: x * Math.cos(angel) + y * Math.sin(angel) + 0.5,
-				y: -x * Math.sin(angel) + y * Math.cos(angel) + 0.5,
+				x: x * Math.cos(angel) + y * Math.sin(angel) + 0.5 * +adjust,
+				y: -x * Math.sin(angel) + y * Math.cos(angel) + 0.5 * +adjust,
 			};
 		}
+		console.log(point);
 		console.log({
-			x: x * Math.cos(angel) - y * Math.sin(angel) + 0.5,
-			y: x * Math.sin(angel) + y * Math.cos(angel) + 0.5,
+			x: x * Math.cos(angel) - y * Math.sin(angel) + 0.5 * +adjust,
+			y: x * Math.sin(angel) + y * Math.cos(angel) + 0.5 * +adjust,
 		});
 		return {
-			x: x * Math.cos(angel) - y * Math.sin(angel) + 0.5,
-			y: x * Math.sin(angel) + y * Math.cos(angel) + 0.5,
+			x: x * Math.cos(angel) - y * Math.sin(angel) + 0.5 * +adjust,
+			y: x * Math.sin(angel) + y * Math.cos(angel) + 0.5 * +adjust,
 		};
 	}
 
@@ -206,18 +210,24 @@
 	const conn: Connection = new Connection(gameID);
 	const connectedUsers = conn.connectedUsers;
 	conn.cardStore = cardStore;
+	conn.handStore = handStore;
 	let lastMoveUpdate = Date.now();
 	onMount(function () {
 		document.onmousemove = (m) => {
 			if (liftedCard != -1) {
-				console.log($connectedUsers)
+				console.log($connectedUsers);
 				const theXCoord =
 					m.x / document.getElementById("playingSurface").offsetWidth;
 				const theYCoord =
 					(m.y -
 						document.getElementById("playingSurface").offsetTop) /
 					document.getElementById("playingSurface").offsetHeight;
-				const {x, y} = rotatePoint({x: theXCoord, y: theYCoord}, userIndex, numConnected, true);
+				const { x, y } = rotatePoint(
+					{ x: theXCoord, y: theYCoord },
+					userIndex,
+					numConnected,
+					{ invert: true }
+				);
 				cardStore.update((cc) => {
 					cc[liftedCard].x = x;
 					cc[liftedCard].y = y;
@@ -228,7 +238,6 @@
 					return cc;
 				});
 				if (theYCoord < 0.845) {
-					console.log(cardOnHand);
 					let euc = euclidean($cardStore[liftedCard], $cardStore);
 					euc = euc.sort((a, b) => a.distance - b.distance);
 					const closest = euc[0];
@@ -259,15 +268,6 @@
 						liftedCard = -1;
 					}
 				}
-				if (theYCoord > 0.8) {
-					if (!cardOnHand.includes(liftedCard)) {
-						cardOnHand.push(liftedCard);
-					}
-				} else {
-					if (cardOnHand.includes(liftedCard)) {
-						cardOnHand.splice(cardOnHand.indexOf(liftedCard, 1))
-					}
-				}
 			}
 			// $username = "Hello"
 		};
@@ -279,7 +279,7 @@
 		if ($username == null || $username == "") {
 			$username = localStorage.getItem("username");
 			if ($username == null || $username == "") {
-				goto("/");
+				window.location = "/";
 			}
 		}
 		if (hand) {
@@ -302,14 +302,34 @@
 		};
 	});
 
-	onDestroy(() => {
-		if (hand && conn) {
-			conn.destroy();
+	let numConnected = 1;
+	let userIndex = 0;
+	let points = [];
+
+	const unsubscribe_ConnectedUsers = connectedUsers.subscribe((val) => {
+		numConnected = val.length ? val.length : 1;
+		userIndex = numConnected ? val.indexOf($username) : 0;
+		const pointsOnCircle = [];
+		const scalingFactor = 1.1;
+		for (let i = 0; i < numConnected; i++) {
+			console.log(i);
+			const point = rotatePoint(unitCirclePoints(numConnected, i), 1, 1, {
+				angel: ((Math.PI * 2) / numConnected) * userIndex + Math.PI,
+				adjust: false,
+			});
+			// const point = unitCirclePoints(numConnected, i);
+			pointsOnCircle.push({
+				x: ((point.x + scalingFactor) * 50) / scalingFactor,
+				y: ((point.y + scalingFactor) * 50) / scalingFactor,
+				username: val[i],
+			});
 		}
+		points = pointsOnCircle;
+		console.log(points);
 	});
 
-	$: numConnected = $connectedUsers.length ? $connectedUsers.length : 1;
-	$: userIndex =  $connectedUsers.length ? $connectedUsers.indexOf($username) : 0;
+	onDestroy(() => conn.destroy());
+	onDestroy(unsubscribe_ConnectedUsers);
 </script>
 
 <div id="playingSurface" class="relative w-full h-full overflow-hidden">
@@ -319,12 +339,26 @@
 			class:transition-all={liftedCard != i}
 			class:duration-100={liftedCard != i}
 			style="
-				top: calc({cardGroup?.y ? rotatePoint({x: cardGroup?.x ? cardGroup.x : 47.5, y: cardGroup.y}, userIndex, numConnected).y * 100 : hand ? 35 : 0}% - {cardGroup?.y
-				? 10.5 / 2
+				top: calc({cardGroup?.y
+				? rotatePoint(
+						{
+							x: cardGroup?.x ? cardGroup.x : 47.5,
+							y: cardGroup.y,
+						},
+						userIndex,
+						numConnected
+				  ).y * 100
 				: hand
-				? 0
-				: -17}rem);
-				left: calc({cardGroup?.x ? rotatePoint({y: cardGroup?.y ? cardGroup.y : 35, x: cardGroup.x}, userIndex, numConnected).x * 100 : 47.5}% - {cardGroup?.x
+				? 35
+				: 0}% - {cardGroup?.y ? 10.5 / 2 : hand ? 0 : -17}rem);
+				left: calc({cardGroup?.x
+				? rotatePoint(
+						{ y: cardGroup?.y ? cardGroup.y : 35, x: cardGroup.x },
+						userIndex,
+						numConnected,
+						{ invert: false }
+				  ).x * 100
+				: 45}% - {cardGroup?.x
 				? 7.5 / 2 +
 				  0.3 * (cardGroup.cards.length - 1) * Number(!cardGroup.locked)
 				: 0}rem);
@@ -335,11 +369,19 @@
 			<PlayingCardGroup
 				cards={cardGroup}
 				lifted={liftedCard == i}
-				flipped={cardOnHand.includes(i) ? true : (cardGroup?.flipped
+				flipped={cardGroup?.y &&
+				cardGroup?.x &&
+				rotatePoint(
+					{ y: cardGroup.y, x: cardGroup.x },
+					userIndex,
+					numConnected
+				).y > 0.8
+					? true
+					: cardGroup?.flipped
 					? cardGroup?.flipped
 					: cardGroup?.flipped == null
 					? null
-					: false)}
+					: false}
 				handleButtonClick={handleCardButtonClick(i)}
 				handleLockClick={handleCardLockClick(i)}
 				hand={!cardGroup.locked}
@@ -362,7 +404,7 @@
 			{$username}
 		</div>
 
-		<div class="absolute bottom-6 right-6 flex flex-col space-y-8">
+		<div class="absolute bottom-6 right-6 flex flex-col space-y-8" style="z-index: 10000;">
 			{#if drawButton}
 				<input
 					id="forwardTurn"
@@ -397,7 +439,7 @@
 				{/if}
 			</button>
 		</div>
-		<div class="absolute bottom-6 left-6 flex flex-col space-y-8">
+		<div class="absolute bottom-6 left-6 flex flex-col space-y-8" style="z-index: 10000;">
 			<ChatBox
 				on:message={(msg) => conn.say(msg.detail.value)}
 				chat={conn.chat}
@@ -405,7 +447,17 @@
 			/>
 		</div>
 	{/if}
-	<!-- {#each $userHands as usrHand}
-		<div/>
-	{/each} -->
+	{#if hand}
+		{#each points as point, i}
+			<div
+				class="absolute text-center"
+				style="top: {point.y}%; left: {point.x}%;"
+			>
+				{#if handStore[point.username]}
+					<PlayingCardGroup cards={handStore[i]} flipped={false} />
+				{/if}
+				{point.username}
+			</div>
+		{/each}
+	{/if}
 </div>
