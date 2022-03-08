@@ -218,7 +218,7 @@
 				cardStore.update((cc) => {
 					cc.cards[liftedCard].x = x;
 					cc.cards[liftedCard].y = y;
-					if (Date.now() - lastMoveUpdate > 125) {
+					if (Date.now() - lastMoveUpdate > 75) {
 						conn.moveCard(liftedCard, x, y, true);
 						lastMoveUpdate = Date.now();
 					}
@@ -327,8 +327,6 @@
 	{#each Object.entries($cardStore.cards) as [key, cardSet]}
 		<div
 			class="absolute cursor-move"
-			class:transition-all={liftedCard != key}
-			class:duration-100={liftedCard != key}
 			style="
 				top: calc({cardSet?.y
 				? rotatePoint(
