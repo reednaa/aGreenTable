@@ -5,6 +5,10 @@ export type suit = "Joker" | "heart" | "diamond" | "club" | "spade"
 
 
 
+function randomHash() {
+    return Math.random().toString().substring(2) + Math.random().toString().substring(2)
+}
+
 function combinationsOfTwoArrays(suits: suit[], values: number[], flipped = true) {
     const combinations: Card[] = [];
     for (let suit = 0; suit < suits.length; suit++) {
@@ -50,7 +54,7 @@ export class Card {
 
 }
 
-export class CardGroup {
+export class CardSet {
     cards: Card[];
     x?: number
     y?: number
@@ -58,7 +62,7 @@ export class CardGroup {
     flipped?: boolean
     locked?: boolean
 
-    constructor(cards?: Card[] | Card, x?: number, y?: number, z?: number, flipped? : boolean) {
+    constructor(cards?: Card[] | Card, x?: number, y?: number, z?: number, flipped?: boolean) {
         if (cards.constructor == Array) {
             this.cards = cards;
         } else if (cards.constructor == Card) {
@@ -73,15 +77,20 @@ export class CardGroup {
     }
 
     split() {
-        const out: CardGroup[] = [];
+        const out: CardSet[] = [];
         for (let em of this.cards) {
-            out.push(new CardGroup([em], this.x, this.y))
+            out.push(new CardSet([em], this.x, this.y))
         }
         return out;
     }
 
-    add(grp: CardGroup) {
-        this.cards = this.cards.concat(grp.cards);
+    add(grp: CardSet | Card) {
+        if (grp instanceof CardSet) {
+            this.cards = this.cards.concat(grp.cards);
+        }
+        if (grp instanceof Card) {
+            this.cards.push(grp);
+        }
     }
 
     draw(n = -1) {
@@ -93,9 +102,39 @@ export class CardGroup {
             const drawn = this.cards.pop();
             draws.push(drawn);
         }
-        return new CardGroup(draws);
+        return new CardSet(draws);
     }
 }
+
+
+export class CardGroup {
+    cards: { [cardID: string]: CardSet }
+
+    constructor(...cards: CardSet[]) {
+        this.cards = {};
+        this.combine(...cards)
+    }
+
+    combine(...cards: CardSet[]) {
+        const hashes: string[] = [];
+        for (let card of cards) {
+            const hsh = randomHash();
+            hashes.push(hsh);
+            this.cards[hsh] = card;
+        }
+        return hashes;
+    }
+
+    remove(...hashes: string[]) {
+        const cards: CardSet[] = [];
+        for (let hash of hashes) {
+            cards.push(this.cards[hash]);
+            delete this.cards[hash];
+        }
+        return cards;
+    }
+}
+
 
 export class CardDeck {
     cardsInDeck: Card[];
@@ -132,7 +171,7 @@ export class CardDeck {
             this.cardsNotInDeck.push(drawn);
             draws.push(drawn);
         }
-        return new CardGroup(draws);
+        return new CardSet(draws);
     }
 
     draw(n = -1) {
@@ -145,7 +184,7 @@ export class CardDeck {
             this.cardsNotInDeck.push(drawn);
             draws.push(drawn);
         }
-        return new CardGroup(draws);
+        return new CardSet(draws);
     }
 
     resetDeck() {
@@ -158,6 +197,8 @@ export class CardDeck {
     }
 
 }
+
+
 
 
 export default CardDeck;

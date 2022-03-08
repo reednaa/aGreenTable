@@ -3,7 +3,7 @@
     import Card from "$lib/components/PlayingCard.svelte";
     import { page } from "$app/stores";
 
-    import CardDeck from "$lib/utils/deck";
+    import { CardDeck, CardGroup } from "$lib/utils/deck";
     import CardSurface from "$lib/components/PlayingSurface.svelte";
 
     const deck = new CardDeck({ shuffle: true, flipped: false });
@@ -19,7 +19,7 @@
 </svelte:head>
 
 <div class="w-screen h-screen">
-    <CardSurface cardGroups={[PlayerZero]} />
+    <CardSurface CardSets={new CardGroup(PlayerZero)} />
 </div>
 
 <!-- <br>

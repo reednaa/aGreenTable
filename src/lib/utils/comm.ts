@@ -1,7 +1,7 @@
 
 import { get, writable, type Writable } from 'svelte/store';
 import { dev } from '$app/env';
-import { CardGroup, Card } from './deck';
+import { CardSet, Card, CardGroup } from './deck';
 import { goto } from '$app/navigation';
 
 export let username = writable("");
@@ -18,8 +18,8 @@ export default class Connection {
     socket: WebSocket
     identifier: Writable<string>;
     channel: string
-    cardStore: Writable<CardGroup[]>
-    handStore: Writable<{ [username: string]: CardGroup }>
+    cardStore: Writable<CardGroup>
+    handStore: Writable<CardGroup>
     chat: Writable<string[]>
     master: string
     connectedUsers: Writable<string[]>;
@@ -105,9 +105,9 @@ export default class Connection {
                         break;
                     case "moveCard":
                         Conn.cardStore.update(cc => {
-                            cc[message.i].x = message.x;
-                            cc[message.i].y = message.y;
-                            // cc[message.i].lifted = message.lifted;  TODO: Better way to comm this over.
+                            cc.cards[message.i].x = message.x;
+                            cc.cards[message.i].y = message.y;
+                            // cc.cards[message.i].lifted = message.lifted;  TODO: Better way to comm this over.
                             return cc;
                         });
                         // Conn.log(`${message.sign} moved card ${message.i} to [${message.x}, ${message.y}]`)
@@ -115,16 +115,16 @@ export default class Connection {
                         break;
                     case "splitCards":
                         Conn.cardStore.update((cc) => {
-                            const clickedCardGroup = cc[message.i];
-                            const popCard = clickedCardGroup.cards.pop();
-                            cc[message.i] = clickedCardGroup;
-                            const nextLiftedCard = cc.push(
-                                new CardGroup(
+                            const clickedCardSet = cc.cards[message.i];
+                            const popCard = clickedCardSet.cards.splice(message.cardIndex, 1);
+                            cc.cards[message.i] = clickedCardSet;
+                            cc.cards[message.hash] = (
+                                new CardSet(
                                     popCard,
-                                    clickedCardGroup.x,
-                                    clickedCardGroup.y,
+                                    clickedCardSet.x,
+                                    clickedCardSet.y,
                                     message.z,
-                                    clickedCardGroup.flipped
+                                    clickedCardSet.flipped
                                 )
                             );
                             return cc;
@@ -133,7 +133,7 @@ export default class Connection {
                         break;
                     case "flipCard":
                         Conn.cardStore.update(cc => {
-                            cc[message.i].flipped = message.flipped;
+                            cc.cards[message.i].flipped = message.flipped;
                             return cc;
                         });
                         // Conn.log(`${message.sign} flipped card ${message.i} to ${message.flipped}`)
@@ -141,7 +141,7 @@ export default class Connection {
                         break;
                     case "lockCard":
                         Conn.cardStore.update((cc) => {
-                            cc[message.i].locked = message.locked;
+                            cc.cards[message.i].locked = message.locked;
                             return cc;
                         });
                         break;
@@ -150,37 +150,37 @@ export default class Connection {
                             let to = message.to;
                             let from = message.from;
                             // console.log(from + " to " + to + " via websockets");
-                            cc[to].add(cc.splice(from, 1)[0]);
+                            cc.cards[to].add(cc.remove(from)[0]);
                             return cc;
                         });
                         break;
                     case "pickupCard":
-                        let puC: CardGroup[];
+                        let puC: CardSet[];
                         Conn.cardStore.update(cc => {
-                            puC = cc.splice(message.i, 1);
+                            puC = cc.remove(message.i);
                             return cc
                         });
                         Conn.handStore.update(cc => {
-                            const selected = cc[message.user];
+                            const selected = cc.cards[message.user];
                             if (selected) {
-                                cc[message.user].add(puC[0]);
+                                cc.cards[message.user].add(puC[0]);
                             } else {
-                                cc[message.user] = puC[0];
+                                cc.cards[message.user] = puC[0];
                             }
                             return cc;
                         })
                         break;
                     case "dropCard":
-                        let dC: CardGroup;
+                        let dC: CardSet;
                         Conn.handStore.update(cc => {
-                            dC = new CardGroup(cc[message.user].cards.splice(message.i, 1),
-                                cc[message.user]?.x,
-                                cc[message.user]?.y
+                            dC = new CardSet(cc.cards[message.user].cards.splice(message.i, 1),
+                                cc.cards[message.user]?.x,
+                                cc.cards[message.user]?.y
                             );
                             return cc;
                         });
                         Conn.cardStore.update((cc) => {
-                            cc.push(
+                            cc.combine(
                                 dC
                             );
                             return cc;
@@ -188,23 +188,25 @@ export default class Connection {
                     case "postSurface":
                         Conn.log(`Got state from ${message.sign}`)
 
-                        const create: CardGroup[] = []
-                        for (let grp of message.data) {
-                            const cards: Card[] = []
+
+                        const create: CardGroup = new CardGroup();
+                        for (let [key, grp] of Object.entries(message.data.cards)) {
+                            const cards: Card[] = [];
+                            console.log(grp)
+                            // @ts-ignore
                             for (let crd of grp.cards) {
                                 cards.push(
                                     new Card(crd)
                                 )
                             }
-                            const a = new CardGroup(cards, grp.x, grp.y, grp.z, grp.flipped)
+                            // @ts-ignore
+                            const a = new CardSet(cards, grp.x, grp.y, grp.z, grp.flipped)
+                            // @ts-ignore
                             a.locked = grp.locked;
-                            create.push(
-                                a
-                            );
+                            create.cards[key] = a;
                         }
-                        Conn.cardStore.update(cc => {
-                            return create;
-                        });
+                        console.log(create);
+                        Conn.cardStore.set(create);
                         Conn.connectedUsers.set(message.users);
 
                         break;
@@ -240,7 +242,9 @@ export default class Connection {
 
                         break;
                     case "denyUsername":
-                        window.location = "/"
+                        Conn.identifier.set("");
+                        // @ts-ignore
+                        window.location = "/";
                         break;
                     case "requestMaster":
                         if (Conn.master == get(Conn.identifier)) {
@@ -389,7 +393,7 @@ export default class Connection {
         })
     }
 
-    moveCard(i: number, x: number, y: number, lifted = false) {
+    moveCard(i: string, x: number, y: number, lifted = false) {
         this.publish({
             action: "moveCard",
             i: i,
@@ -399,10 +403,12 @@ export default class Connection {
         });
     }
 
-    splitCards(i: number, z: number) {
+    splitCards(i: number, z: number, hash: string, cardIndex) {
         this.publish({
             action: "splitCards",
             i: i,
+            hash: hash,
+            cardIndex: cardIndex,
             z: z
         });
     };

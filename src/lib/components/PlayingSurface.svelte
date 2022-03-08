@@ -5,20 +5,20 @@
 	import { page } from "$app/stores";
 
 	import { get, writable, type Writable } from "svelte/store";
-	import { CardGroup } from "$lib/utils/deck";
+	import { CardSet, CardGroup } from "$lib/utils/deck";
 	import { onDestroy, onMount } from "svelte";
 	import Check from "./icons/Check.svelte";
 	import Connection, { username } from "$lib/utils/comm";
 	import { goto } from "$app/navigation";
 	import ChatBox from "./ChatBox.svelte";
 
-	export let cardGroups: CardGroup[] = [];
-	export const cardStore: Writable<CardGroup[]> = writable(cardGroups);
-	export const handStore: Writable<{ [username: string]: CardGroup }> =
-		writable({});
+	export let CardSets: CardGroup = new CardGroup();
+	// export const cardStore: Writable<CardSet[]> = writable(CardSets);
+	export const cardStore: Writable<CardGroup> = writable(CardSets);
+	export const handStore: Writable<CardGroup> = writable(new CardGroup());
 	let postSurface = writable(() => {});
 	export let hand = true;
-	let liftedCard = -1;
+	let liftedCard: string = "";
 	let highestZ = 1;
 	let mouseTime = 0;
 	let x = 0;
@@ -35,26 +35,26 @@
 
 	function handleCardClick(i, stop = null) {
 		if (stop == null) {
-			function internalCardClick(m) {
+			function internalCardClick(m?) {
 				if (liftedCard == i) {
 					if (Date.now() - mouseTime < 200 * 1) {
 						cardStore.update((cc) => {
-							cc[i].flipped = !cc[i]?.flipped;
-							conn.flipCard(i, cc[i]?.flipped);
+							cc.cards[i].flipped = !cc.cards[i]?.flipped;
+							conn.flipCard(i, cc.cards[i]?.flipped);
 							return cc;
 						});
 					}
 					conn.moveCard(
 						liftedCard,
-						$cardStore[liftedCard].x,
-						$cardStore[liftedCard].y,
+						$cardStore.cards[liftedCard].x,
+						$cardStore.cards[liftedCard].y,
 						false
 					);
-					liftedCard = -1;
+					liftedCard = "";
 				} else {
 					highestZ += 1;
 					cardStore.update((cc) => {
-						cc[i].z = highestZ;
+						cc.cards[i].z = highestZ;
 						return cc;
 					});
 					liftedCard = i;
@@ -66,10 +66,10 @@
 			setTimeout(() => {
 				highestZ -= 1;
 				cardStore.update((cc) => {
-					cc[i].z = highestZ;
+					cc.cards[i].z = highestZ;
 					return cc;
 				});
-				liftedCard = -1;
+				liftedCard = "";
 				mouseTime = Date.now();
 			}, 1);
 			return () => {};
@@ -77,27 +77,27 @@
 	}
 
 	function handleCardButtonClick(i) {
-		function internalHandleCardButtonClick() {
-			if (Rules.splitCards($cardStore[i])) {
+		function internalHandleCardButtonClick(cardIndex: number) {
+			if (Rules.splitCards($cardStore.cards[i])) {
 				cardStore.update((cc) => {
-					const clickedCardGroup = cc[i];
-					const popCard = clickedCardGroup.cards.pop();
-					cc[i] = clickedCardGroup;
-					const nextLiftedCard = cc.push(
-						new CardGroup(
+					const clickedCardSet = cc.cards[i];
+					const popCard = clickedCardSet.cards.splice(cardIndex, 1);
+					cc.cards[i] = clickedCardSet;
+					const nextLiftedCard = cc.combine(
+						new CardSet(
 							popCard,
-							clickedCardGroup.x,
-							clickedCardGroup.y,
+							clickedCardSet.x,
+							clickedCardSet.y,
 							highestZ,
-							clickedCardGroup.flipped
+							clickedCardSet.flipped
 						)
 					);
+					conn.splitCards(i, highestZ, nextLiftedCard[0], cardIndex);
 					setTimeout(() => {
-						handleCardClick(nextLiftedCard - 1)(null);
+						liftedCard = nextLiftedCard[0];
 					}, 1);
 					return cc;
 				});
-				conn.splitCards(i, highestZ);
 				return true;
 			}
 			return false;
@@ -112,12 +112,11 @@
 			}, 1);
 			let newState: boolean;
 			cardStore.update((cc) => {
-				newState = !cc[i].locked;
-				cc[i].locked = newState;
+				newState = !cc.cards[i].locked;
+				cc.cards[i].locked = newState;
 				conn.lockCard(i, newState);
 				return cc;
 			});
-			console.log(newState);
 			return newState;
 		}
 		return innerHandleCardLockClick;
@@ -125,24 +124,23 @@
 
 	function euclidean(
 		element: { x?: number; y?: number },
-		comparisons: { x?: number; y?: number }[]
+		comparisons: { [key: string]: { x?: number; y?: number } }
 	) {
-		let distances = [];
-		let its = 0;
-		for (let em of comparisons) {
-			if (em?.x) {
+		let distances: { distance: number; i: string; dir: number }[] = [];
+		for (let [key, value] of Object.entries(comparisons)) {
+			if (value?.x) {
 				const calc = Math.sqrt(
-					(+element?.x - +em?.x) ** 2 + (+element?.y - +em?.y) ** 2
+					(+element?.x - +value?.x) ** 2 +
+						(+element?.y - +value?.y) ** 2
 				);
 				if (calc != 0) {
 					distances.push({
 						distance: calc,
-						i: its,
-						dir: +element?.x - +em?.x,
+						i: key,
+						dir: +element?.x - +value?.x,
 					});
 				}
 			}
-			its += 1;
 		}
 		return distances;
 	}
@@ -166,12 +164,7 @@
 		options: { invert?: boolean; adjust?: boolean; angel?: number } = {}
 	) {
 		const tau = Math.PI * 2;
-		let {
-			invert = false,
-			adjust = true,
-			angel = (tau / n) * i,
-		} = options;
-		console.log(`i: ${i}, n: ${n}`);
+		let { invert = false, adjust = true, angel = (tau / n) * i } = options;
 		let { x, y } = point;
 		if (adjust) {
 			x -= 0.5;
@@ -184,11 +177,6 @@
 				y: -x * Math.sin(angel) + y * Math.cos(angel) + 0.5 * +adjust,
 			};
 		}
-		console.log(point);
-		console.log({
-			x: x * Math.cos(angel) - y * Math.sin(angel) + 0.5 * +adjust,
-			y: x * Math.sin(angel) + y * Math.cos(angel) + 0.5 * +adjust,
-		});
 		return {
 			x: x * Math.cos(angel) - y * Math.sin(angel) + 0.5 * +adjust,
 			y: x * Math.sin(angel) + y * Math.cos(angel) + 0.5 * +adjust,
@@ -197,11 +185,11 @@
 
 	function drawCards(n) {
 		cardStore.update((cc) => {
-			const draws = cc[0].draw(n);
+			const draws = cc.cards[0].draw(n);
 			console.log(draws);
-			const newIndex = cc.push(draws);
-			cc[newIndex - 1].y = 0.55;
-			cc[newIndex - 1].flipped = true;
+			const newIndex = cc.combine(draws)[0];
+			cc.cards[newIndex].y = 0.55;
+			cc.cards[newIndex].flipped = true;
 
 			return cc;
 		});
@@ -214,8 +202,7 @@
 	let lastMoveUpdate = Date.now();
 	onMount(function () {
 		document.onmousemove = (m) => {
-			if (liftedCard != -1) {
-				console.log($connectedUsers);
+			if (liftedCard != "") {
 				const theXCoord =
 					m.x / document.getElementById("playingSurface").offsetWidth;
 				const theYCoord =
@@ -229,8 +216,8 @@
 					{ invert: true }
 				);
 				cardStore.update((cc) => {
-					cc[liftedCard].x = x;
-					cc[liftedCard].y = y;
+					cc.cards[liftedCard].x = x;
+					cc.cards[liftedCard].y = y;
 					if (Date.now() - lastMoveUpdate > 125) {
 						conn.moveCard(liftedCard, x, y, true);
 						lastMoveUpdate = Date.now();
@@ -238,21 +225,24 @@
 					return cc;
 				});
 				if (theYCoord < 0.845) {
-					let euc = euclidean($cardStore[liftedCard], $cardStore);
+					let euc = euclidean(
+						$cardStore.cards[liftedCard],
+						$cardStore.cards
+					);
 					euc = euc.sort((a, b) => a.distance - b.distance);
+					// console.log(euc)
 					const closest = euc[0];
 					if (
-						closest?.distance < 0.02 &&
+						closest?.distance < 0.025 &&
 						Rules.combineCards(
-							$cardStore[liftedCard],
-							$cardStore[closest.i]
-						)
+							$cardStore.cards[liftedCard],
+							$cardStore.cards[closest.i]
+						) && (Date.now() - mouseTime) > 450
 					) {
-						console.log(closest);
 						cardStore.update((cc) => {
 							let to;
 							let from;
-							const dir = closest.dir > 0 || cc[closest.i].locked;
+							const dir = closest.dir > 0 || cc.cards[closest.i].locked;
 							if (dir) {
 								to = closest.i;
 								from = liftedCard;
@@ -261,11 +251,13 @@
 								to = liftedCard;
 							}
 							console.log(from + " to " + to);
-							cc[to].add(cc.splice(from, 1)[0]);
+							cc.cards[to].add(cc.remove(from)[0]);
 							conn.combineCards(to, from);
 							return cc;
 						});
-						liftedCard = -1;
+						console.log(liftedCard)
+						liftedCard = "";
+						console.log(liftedCard)
 					}
 				}
 			}
@@ -276,9 +268,10 @@
 			ButtonTime = Date.now();
 		});
 
-		if ($username == null || $username == "") {
+		if (($username == null || $username == "") && hand) {
 			$username = localStorage.getItem("username");
 			if ($username == null || $username == "") {
+				// @ts-ignore
 				window.location = "/";
 			}
 		}
@@ -312,7 +305,6 @@
 		const pointsOnCircle = [];
 		const scalingFactor = 1.1;
 		for (let i = 0; i < numConnected; i++) {
-			console.log(i);
 			const point = rotatePoint(unitCirclePoints(numConnected, i), 1, 1, {
 				angel: ((Math.PI * 2) / numConnected) * userIndex + Math.PI,
 				adjust: false,
@@ -325,7 +317,6 @@
 			});
 		}
 		points = pointsOnCircle;
-		console.log(points);
 	});
 
 	onDestroy(() => conn.destroy());
@@ -333,59 +324,59 @@
 </script>
 
 <div id="playingSurface" class="relative w-full h-full overflow-hidden">
-	{#each $cardStore as cardGroup, i}
+	{#each Object.entries($cardStore.cards) as [key, cardSet]}
 		<div
 			class="absolute cursor-move"
-			class:transition-all={liftedCard != i}
-			class:duration-100={liftedCard != i}
+			class:transition-all={liftedCard != key}
+			class:duration-100={liftedCard != key}
 			style="
-				top: calc({cardGroup?.y
+				top: calc({cardSet?.y
 				? rotatePoint(
 						{
-							x: cardGroup?.x ? cardGroup.x : 47.5,
-							y: cardGroup.y,
+							x: cardSet?.x ? cardSet.x : 47.5,
+							y: cardSet.y,
 						},
 						userIndex,
 						numConnected
 				  ).y * 100
 				: hand
 				? 35
-				: 0}% - {cardGroup?.y ? 10.5 / 2 : hand ? 0 : -17}rem);
-				left: calc({cardGroup?.x
+				: 0}% - {cardSet?.y ? 10.5 / 2 : hand ? 0 : -17}rem);
+				left: calc({cardSet?.x
 				? rotatePoint(
-						{ y: cardGroup?.y ? cardGroup.y : 35, x: cardGroup.x },
+						{ y: cardSet?.y ? cardSet.y : 35, x: cardSet.x },
 						userIndex,
 						numConnected,
 						{ invert: false }
 				  ).x * 100
-				: 45}% - {cardGroup?.x
+				: 45}% - {cardSet?.x
 				? 7.5 / 2 +
-				  0.3 * (cardGroup.cards.length - 1) * Number(!cardGroup.locked)
+				  0.3 * (cardSet.cards.length - 1) * Number(!cardSet.locked)
 				: 0}rem);
-				z-index: {cardGroup?.z ? cardGroup.z : 0};
+				z-index: {cardSet?.z ? cardSet.z : 0};
 			"
-			on:click={handleCardClick(i)}
+			on:click={handleCardClick(key)}
 		>
 			<PlayingCardGroup
-				cards={cardGroup}
-				lifted={liftedCard == i}
-				flipped={cardGroup?.y &&
-				cardGroup?.x &&
+				cards={cardSet}
+				lifted={liftedCard == key}
+				flipped={cardSet?.y &&
+				cardSet?.x &&
 				rotatePoint(
-					{ y: cardGroup.y, x: cardGroup.x },
+					{ y: cardSet.y, x: cardSet.x },
 					userIndex,
 					numConnected
 				).y > 0.8
 					? true
-					: cardGroup?.flipped
-					? cardGroup?.flipped
-					: cardGroup?.flipped == null
+					: cardSet?.flipped
+					? cardSet?.flipped
+					: cardSet?.flipped == null
 					? null
 					: false}
-				handleButtonClick={handleCardButtonClick(i)}
-				handleLockClick={handleCardLockClick(i)}
-				hand={!cardGroup.locked}
-				stack={cardGroup.locked}
+				handleButtonClick={handleCardButtonClick(key)}
+				handleLockClick={handleCardLockClick(key)}
+				hand={!cardSet.locked}
+				stack={cardSet.locked}
 				animate={motion}
 			/>
 		</div>
@@ -404,7 +395,10 @@
 			{$username}
 		</div>
 
-		<div class="absolute bottom-6 right-6 flex flex-col space-y-8" style="z-index: 10000;">
+		<div
+			class="absolute bottom-6 right-6 flex flex-col space-y-8"
+			style="z-index: 10000;"
+		>
 			{#if drawButton}
 				<input
 					id="forwardTurn"
@@ -439,7 +433,10 @@
 				{/if}
 			</button>
 		</div>
-		<div class="absolute bottom-6 left-6 flex flex-col space-y-8" style="z-index: 10000;">
+		<div
+			class="absolute bottom-6 left-6 flex flex-col space-y-8"
+			style="z-index: 10000;"
+		>
 			<ChatBox
 				on:message={(msg) => conn.say(msg.detail.value)}
 				chat={conn.chat}

@@ -1,47 +1,36 @@
-import type { Card, CardGroup } from "./deck";
+import type { Card, CardSet } from "./deck";
 
 export const ruleSets = ["true", "500"]
 
 export class Rule {
-    ruleSet: string[]
+    ruleSet: string
 
-    constructor(ruleSet?: string[] | string) {
-        if (typeof ruleSet == "string") {
-            this.ruleSet = [ruleSet]
-        } else {
-            this.ruleSet = ruleSet ? ruleSet : ["true"]
+    constructor(ruleSet?: string) {
+        this.ruleSet = ruleSet;
+    }
+
+
+    combineCards(setOne: CardSet, setTwo: CardSet, options?: {}) {
+        switch (this.ruleSet) {
+            case "500":
+                if ((setOne.cards[0].suit == "Joker") && setOne.cards.length == 1) {
+                    return true
+                }
+                if ((setTwo.cards[0].suit == "Joker") && setTwo.cards.length == 1) {
+                    return true
+                }
+                // Check for all other combinations. Can be lazy evaluated
+                break;
+            default:
+                return true;
         }
     }
 
-    addRule(ruleSet: string[] | string) {
-        if (typeof ruleSet == "string") {
-            this.ruleSet = [ruleSet]
-        } else {
-            this.ruleSet = ruleSet
+    splitCards(setOne: CardSet, options?: {}) {
+        switch (this.ruleSet) {
+            default:
+                return true;
         }
-    }
-
-    combineCards(setOne: CardGroup, setTwo: CardGroup, options?: {}) {
-        if (this.ruleSet.includes("true")) {
-            return true
-        }
-        if (this.ruleSet.includes("500")) {
-            if ((setOne.cards[0].suit == "Joker") && setOne.cards.length == 1) {
-                return true
-            }
-            if ((setTwo.cards[0].suit == "Joker") && setTwo.cards.length == 1) {
-                return true
-            }
-            // Check for all other combinations. Can be lazy evaluated
-        }
-        return true
-    }
-
-    splitCards(setOne: CardGroup, options?: {}) {
-        if (this.ruleSet.includes("true")) {
-            return true
-        }
-        return true
     }
 }
 
