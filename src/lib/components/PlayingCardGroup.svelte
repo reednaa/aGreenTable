@@ -14,6 +14,7 @@
 	export let lifted = false;
 	export let animate = false;
 	export let handleButtonClick = (cardIndex) => {};
+	export let handleCardClick = () => {};
 	export let handleLockClick = () => {};
 
 	let fannedHand = false;
@@ -70,8 +71,11 @@
 						cardRaised={lifted}
 						button={cards?.cards?.length > 1}
 						locked={cards.locked}
-						on:group={() => {handleButtonClick(i)}}
+						on:group={() => {
+							handleButtonClick(i);
+						}}
 						on:lock={handleLockClick}
+						on:card={handleCardClick}
 					/>
 				</div>
 			{/each}

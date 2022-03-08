@@ -44,6 +44,7 @@
 	class:text-black={color != "red"}
 	on:mouseenter={() => (cardHover = true)}
 	on:mouseleave={() => (cardHover = false)}
+	on:click={() => {dispatch("card");}}
 >
 	{#if cardFlipped}
 		<div
@@ -69,7 +70,7 @@
 					class:opacity-100={cardHover && !cardRaised}
 					on:click={cardHover && !cardRaised
 						? () => {
-								dispatch('lock');
+								dispatch("lock");
 								lock.state.set(+!get(lock.state));
 						  }
 						: () => {}}
@@ -77,7 +78,7 @@
 					<Lock closed={locked} bind:this={lock} />
 				</div>
 			{:else}
-				<div/>
+				<div />
 			{/if}
 			<div>
 				<!-- Bottom Left -->

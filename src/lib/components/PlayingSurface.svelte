@@ -53,10 +53,10 @@
 					liftedCard = "";
 				} else {
 					highestZ += 1;
-					cardStore.update((cc) => {
-						cc.cards[i].z = highestZ;
-						return cc;
-					});
+					// cardStore.update((cc) => {
+					// 	cc.cards[i].z = highestZ;
+					// 	return cc;
+					// });
 					liftedCard = i;
 					mouseTime = Date.now();
 				}
@@ -79,9 +79,13 @@
 	function handleCardButtonClick(i) {
 		function internalHandleCardButtonClick(cardIndex: number) {
 			if (Rules.splitCards($cardStore.cards[i])) {
+				mouseTime = Date.now();
+				highestZ += 1;
 				cardStore.update((cc) => {
 					const clickedCardSet = cc.cards[i];
-					const popCard = clickedCardSet.cards.splice(cardIndex, 1);
+					const popCard = clickedCardSet.locked
+						? clickedCardSet.cards.pop()
+						: clickedCardSet.cards.splice(cardIndex, 1);
 					cc.cards[i] = clickedCardSet;
 					const nextLiftedCard = cc.combine(
 						new CardSet(
@@ -237,12 +241,14 @@
 						Rules.combineCards(
 							$cardStore.cards[liftedCard],
 							$cardStore.cards[closest.i]
-						) && (Date.now() - mouseTime) > 450
+						) &&
+						Date.now() - mouseTime > 450
 					) {
 						cardStore.update((cc) => {
 							let to;
 							let from;
-							const dir = closest.dir > 0 || cc.cards[closest.i].locked;
+							const dir =
+								closest.dir > 0 || cc.cards[closest.i].locked;
 							if (dir) {
 								to = closest.i;
 								from = liftedCard;
@@ -255,9 +261,7 @@
 							conn.combineCards(to, from);
 							return cc;
 						});
-						console.log(liftedCard)
 						liftedCard = "";
-						console.log(liftedCard)
 					}
 				}
 			}
@@ -353,7 +357,6 @@
 				: 0}rem);
 				z-index: {cardSet?.z ? cardSet.z : 0};
 			"
-			on:click={handleCardClick(key)}
 		>
 			<PlayingCardGroup
 				cards={cardSet}
@@ -372,6 +375,7 @@
 					? null
 					: false}
 				handleButtonClick={handleCardButtonClick(key)}
+				handleCardClick={handleCardClick(key)}
 				handleLockClick={handleCardLockClick(key)}
 				hand={!cardSet.locked}
 				stack={cardSet.locked}
