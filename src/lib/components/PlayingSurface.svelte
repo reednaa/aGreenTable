@@ -141,7 +141,7 @@
 					distances.push({
 						distance: calc,
 						i: key,
-						dir: +element?.x - +value?.x,
+						dir: (userIndex+1)/numConnected <= 0.5 ? +element?.x - +value?.x : +value?.x - +element?.x,
 					});
 				}
 			}
