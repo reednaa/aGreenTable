@@ -19,7 +19,7 @@
 </svelte:head>
 
 <div class="w-screen h-screen">
-    <CardSurface CardSets={new CardGroup(PlayerZero)} />
+    <CardSurface CardSets={new CardGroup(PlayerZero)} gameID={gameID} />
 </div>
 
 <!-- <br>
