@@ -12,13 +12,6 @@
     const PlayerZero = deck.draw();
     PlayerZero.locked = true;
     const gameID = $page.params["gameID"];
-    if ($username == "") {
-        if (window.localStorage.getItem("username")) {
-            $username = window.localStorage.getItem("username");
-        } else {
-            goto("https://vav.me");
-        }
-    }
 </script>
 
 <svelte:head>

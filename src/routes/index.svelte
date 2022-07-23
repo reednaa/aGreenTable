@@ -14,6 +14,11 @@
 	// playingDeck.y = 0.7;
 
 	let gameID = "";
+	onMount(() => {
+		if (window.location.pathname != "/") {
+			goto("/");
+		}
+	});
 
 	function submissionHandler(v) {
 		v.preventDefault();
