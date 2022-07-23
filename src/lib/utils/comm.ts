@@ -194,7 +194,7 @@ export default class Connection {
                             const cards: Card[] = [];
                             console.log(grp);
                             // @ts-ignore
-                            for (let crd of grp.cards.reverse()) {
+                            for (let crd of grp.cards) {
                                 cards.push(
                                     new Card(crd)
                                 )
