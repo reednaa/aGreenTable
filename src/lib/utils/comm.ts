@@ -3,6 +3,7 @@ import { get, writable, type Writable } from 'svelte/store';
 import { dev } from '$app/env';
 import { CardSet, Card, CardGroup } from './deck';
 import { goto } from '$app/navigation';
+import ReconnectingWebSocket from 'reconnecting-websocket';
 
 export let username = writable("");
 
@@ -15,7 +16,7 @@ export function PickupCard() {
 const INIT_TIME = 1250;
 
 export default class Connection {
-    socket: WebSocket
+    socket: ReconnectingWebSocket
     identifier: Writable<string>;
     channel: string
     cardStore: Writable<CardGroup>
@@ -46,7 +47,10 @@ export default class Connection {
         const Conn = this;
         const channel = this.channel;
         const identifier = get(this.identifier);
-        this.socket = new WebSocket(url);
+
+        const urlProvider = () => url.toString();
+
+        this.socket = new ReconnectingWebSocket(urlProvider);
 
         this.socket.onopen = function (event) {
             console.log("Socket connection opened.");
@@ -86,6 +90,8 @@ export default class Connection {
 
         this.socket.onclose = function () {
             console.log("Socket connection closed.");
+
+            setTimeout(Conn.connect, 5000)
         };
 
         this.socket.onmessage = function (event) {
