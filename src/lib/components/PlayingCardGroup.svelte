@@ -91,7 +91,7 @@
 						cardRaised={lifted}
 						button={cards?.cards?.length > 1}
 						locked={cards.locked}
-						on:group={handleButtonClick}
+						on:group={() => {handleButtonClick(i)}}
 						on:lock={handleLockClick}
 					/>
 				</div>
