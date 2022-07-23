@@ -192,9 +192,9 @@ export default class Connection {
                         const create: CardGroup = new CardGroup();
                         for (let [key, grp] of Object.entries(message.data.cards)) {
                             const cards: Card[] = [];
-                            console.log(grp)
+                            console.log(grp);
                             // @ts-ignore
-                            for (let crd of grp.cards) {
+                            for (let crd of grp.cards.reverse()) {
                                 cards.push(
                                     new Card(crd)
                                 )

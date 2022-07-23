@@ -16,7 +16,7 @@
         if (window.localStorage.getItem("username")) {
             $username = window.localStorage.getItem("username");
         } else {
-            goto("/");
+            goto("https://vav.me");
         }
     }
 </script>
