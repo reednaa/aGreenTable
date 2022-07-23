@@ -4,6 +4,7 @@
 	import { onMount } from "svelte";
 	import { username } from "$lib/utils/comm";
 	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
 
 	const deck = new CardDeck({ shuffle: true });
 	const PlayerOne = deck.draw(5);
@@ -16,6 +17,7 @@
 	let gameID = "";
 	onMount(() => {
 		if (window.location.pathname != "/") {
+			console.log($page.params["gameID"]);
 			goto("/");
 		}
 	});
