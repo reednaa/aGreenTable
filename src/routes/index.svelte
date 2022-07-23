@@ -1,7 +1,4 @@
 <script lang="ts">
-	import PlacedCards from "$lib/components/PlayingCardGroup.svelte";
-	import Card from "$lib/components/PlayingCard.svelte";
-
 	import CardDeck, { CardGroup } from "$lib/utils/deck";
 	import PlayingSurface from "$lib/components/PlayingSurface.svelte";
 	import { onMount } from "svelte";

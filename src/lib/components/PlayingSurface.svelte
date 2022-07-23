@@ -28,7 +28,7 @@
 	let drawButton = true;
 	let drawValue = "";
 	let chatbox;
-	export let gameID: string;
+	export let gameID = $page.params["gameID"];
 
 	const startTime = Date.now();
 	let ButtonTime = Date.now();

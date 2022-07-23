@@ -1,10 +1,10 @@
 <script lang="ts">
-    import PlacedCards from "$lib/components/PlayingCardGroup.svelte";
-    import Card from "$lib/components/PlayingCard.svelte";
     import { page } from "$app/stores";
 
     import { CardDeck, CardGroup } from "$lib/utils/deck";
     import CardSurface from "$lib/components/PlayingSurface.svelte";
+    import { username } from "$lib/utils/comm";
+    import { goto } from "$app/navigation";
 
     const deck = new CardDeck({ shuffle: true, flipped: false });
     // const firstGroup = deck.draw(4);
@@ -12,6 +12,13 @@
     const PlayerZero = deck.draw();
     PlayerZero.locked = true;
     const gameID = $page.params["gameID"];
+    if ($username == "") {
+        if (window.localStorage.getItem("username")) {
+            $username = window.localStorage.getItem("username");
+        } else {
+            goto("/");
+        }
+    }
 </script>
 
 <svelte:head>
@@ -19,7 +26,7 @@
 </svelte:head>
 
 <div class="w-screen h-screen">
-    <CardSurface CardSets={new CardGroup(PlayerZero)} gameID={gameID} />
+    <CardSurface CardSets={new CardGroup(PlayerZero)} />
 </div>
 
 <!-- <br>
